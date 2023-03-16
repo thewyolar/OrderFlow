@@ -50,7 +50,8 @@ public class OrderService {
         transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
         transaction.setMerchantId(order.getMerchantId());
         transaction.setStatus(TransactionStatus.NEW);
-        transaction = transactionRepository.save(transaction);
+        transaction.setType(TransactionType.PAYMENT);
+        transactionRepository.save(transaction);
 
         OrderResponseDTO responseDTO = modelMapper.map(order, OrderResponseDTO.class);
         responseDTO.setPayformUrl("https://site.com/order?" + responseDTO.getOrderId());
