@@ -2,6 +2,7 @@ package com.thewyolar.orderflow.merchantservice.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
+import com.thewyolar.orderflow.merchantservice.util.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,11 +33,11 @@ public class Transaction {
     private String currency;
 
     @Column(name = "date_create")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateCreate;
 
     @Column(name = "date_update")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateUpdate;
 
     @Column(name = "context")
@@ -46,5 +47,5 @@ public class Transaction {
     private TransactionStatus status;
 
     @Column(name = "type")
-    private String type;
+    private TransactionType type;
 }
