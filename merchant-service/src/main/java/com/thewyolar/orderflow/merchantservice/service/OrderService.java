@@ -2,17 +2,24 @@ package com.thewyolar.orderflow.merchantservice.service;
 
 import com.thewyolar.orderflow.merchantservice.dto.OrderDTO;
 import com.thewyolar.orderflow.merchantservice.dto.OrderResponseDTO;
+import com.thewyolar.orderflow.merchantservice.dto.OrderResponseWrapper;
+import com.thewyolar.orderflow.merchantservice.dto.TransactionResponseDTO;
 import com.thewyolar.orderflow.merchantservice.model.Order;
 import com.thewyolar.orderflow.merchantservice.model.Transaction;
 import com.thewyolar.orderflow.merchantservice.repository.OrderRepository;
 import com.thewyolar.orderflow.merchantservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.merchantservice.util.OrderStatus;
 import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
+import com.thewyolar.orderflow.merchantservice.util.TransactionType;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class OrderService {
@@ -53,13 +60,13 @@ public class OrderService {
         transaction.setType(TransactionType.PAYMENT);
         transactionRepository.save(transaction);
 
-        OrderResponseDTO responseDTO = modelMapper.map(order, OrderResponseDTO.class);
-        responseDTO.setPayformUrl("https://site.com/order?" + responseDTO.getOrderId());
+        OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
+        orderResponseDTO.setPayformUrl("https://site.com/order?" + orderResponseDTO.getOrderId());
 
-//        String message = "New order created with id: " + responseDTO.getOrderId();
+//        String message = "New order created with id: " + orderResponseDTO.getOrderId();
 //        kafkaTemplate.send("order-topic", message);
 
-        return responseDTO;
+        return orderResponseDTO;
     }
 
     public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
