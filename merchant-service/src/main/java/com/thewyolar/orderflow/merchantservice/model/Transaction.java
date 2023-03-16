@@ -19,6 +19,7 @@ public class Transaction {
     private UUID transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
     private Order order;
 
     @Column(name = "merchant_id")
