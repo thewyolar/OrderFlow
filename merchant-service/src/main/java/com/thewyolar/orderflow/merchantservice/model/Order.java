@@ -43,7 +43,7 @@ public class Order {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private OffsetDateTime expiredDate;
 
-    @Column(name = "orderStatus")
+    @Column(name = "status")
     private OrderStatus status;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
