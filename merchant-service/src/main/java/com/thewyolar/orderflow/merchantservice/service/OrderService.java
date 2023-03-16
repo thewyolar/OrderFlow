@@ -46,6 +46,8 @@ public class OrderService {
         transaction.setOrder(order);
         transaction.setAmount(order.getAmount());
         transaction.setCurrency(order.getCurrency());
+        transaction.setDateCreate(order.getDateCreate().toLocalDateTime());
+        transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
         transaction.setMerchantId(order.getMerchantId());
         transaction.setStatus(TransactionStatus.NEW);
         transaction = transactionRepository.save(transaction);
