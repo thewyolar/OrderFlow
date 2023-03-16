@@ -4,7 +4,7 @@ import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -15,7 +15,7 @@ public class TransactionResponseDTO {
     private double amount;
     private String currency;
     private UUID merchantId;
-    private OffsetDateTime dateCreate;
-    private OffsetDateTime dateUpdate;
+    private LocalDateTime dateCreate;
+    private LocalDateTime dateUpdate;
     private TransactionStatus status;
 }
