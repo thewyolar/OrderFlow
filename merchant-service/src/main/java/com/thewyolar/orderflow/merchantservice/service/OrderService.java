@@ -60,4 +60,65 @@ public class OrderService {
 
         return responseDTO;
     }
+
+    public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException());
+        return convertOrderToResponseWrapper(order);
+    }
+
+    public TransactionResponseDTO refundOrder(UUID transactionId) throws NotFoundException {
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new NotFoundException());
+        transaction.setStatus(TransactionStatus.DECLINED);
+        transactionRepository.save(transaction);
+
+        Transaction refundTransaction = new Transaction();
+        refundTransaction.setOrder(transaction.getOrder());
+        refundTransaction.setMerchantId(transaction.getMerchantId());
+        refundTransaction.setAmount(transaction.getAmount());
+        refundTransaction.setCurrency(transaction.getCurrency());
+        refundTransaction.setDateCreate(transaction.getDateCreate());
+        refundTransaction.setDateUpdate(transaction.getDateUpdate());
+        refundTransaction.setContext(transaction.getContext());
+        refundTransaction.setStatus(transaction.getStatus());
+        refundTransaction.setType(transaction.getType());
+        transactionRepository.save(refundTransaction);
+
+        modelMapper.createTypeMap(Transaction.class, TransactionResponseDTO.class)
+                .addMappings(mapper -> mapper.map(src -> src.getOrder().getOrderId(), TransactionResponseDTO::setOrderId));
+
+        TransactionResponseDTO refundTransactionDto = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
+
+        return refundTransactionDto;
+    }
+
+    private OrderResponseWrapper convertOrderToResponseWrapper(Order order) {
+        List<TransactionResponseDTO> transactionResponseDTOList = new ArrayList<>();
+        for (Transaction transaction : order.getTransactions()) {
+            TransactionResponseDTO transactionResponseDTO = new TransactionResponseDTO();
+            transactionResponseDTO.setTransactionId(transaction.getTransactionId());
+            transactionResponseDTO.setOrderId(transaction.getOrder().getOrderId());
+            transactionResponseDTO.setAmount(transaction.getAmount());
+            transactionResponseDTO.setCurrency(transaction.getCurrency());
+            transactionResponseDTO.setMerchantId(transaction.getMerchantId());
+            transactionResponseDTO.setDateCreate(transaction.getDateCreate());
+            transactionResponseDTO.setDateUpdate(transaction.getDateUpdate());
+            transactionResponseDTO.setStatus(transaction.getStatus());
+            transactionResponseDTOList.add(transactionResponseDTO);
+        }
+
+        OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
+
+        OrderResponseWrapper orderResponseWrapper = new OrderResponseWrapper();
+        orderResponseWrapper.setOrderId(orderResponseDTO.getOrderId());
+        orderResponseWrapper.setName(orderResponseDTO.getName());
+        orderResponseWrapper.setAmount(orderResponseDTO.getAmount());
+        orderResponseWrapper.setCurrency(orderResponseDTO.getCurrency());
+        orderResponseWrapper.setMerchantId(orderResponseDTO.getMerchantId());
+        orderResponseWrapper.setDateCreate(orderResponseDTO.getDateCreate());
+        orderResponseWrapper.setDateUpdate(orderResponseDTO.getDateUpdate());
+        orderResponseWrapper.setStatus(orderResponseDTO.getStatus());
+        orderResponseWrapper.setTransactions(transactionResponseDTOList);
+
+        return orderResponseWrapper;
+    }
 }
