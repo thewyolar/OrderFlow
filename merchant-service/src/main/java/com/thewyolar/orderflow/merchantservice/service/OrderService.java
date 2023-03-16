@@ -87,7 +87,7 @@ public class OrderService {
         refundTransaction.setDateCreate(transaction.getDateCreate());
         refundTransaction.setDateUpdate(transaction.getDateUpdate());
         refundTransaction.setContext(transaction.getContext());
-        refundTransaction.setStatus(transaction.getStatus());
+        refundTransaction.setStatus(TransactionStatus.NEW);
         refundTransaction.setType(transaction.getType());
         transactionRepository.save(refundTransaction);
 
