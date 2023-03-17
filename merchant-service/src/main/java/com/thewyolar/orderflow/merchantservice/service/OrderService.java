@@ -11,9 +11,11 @@ import com.thewyolar.orderflow.merchantservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.merchantservice.util.OrderStatus;
 import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
 import com.thewyolar.orderflow.merchantservice.util.TransactionType;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -94,5 +96,18 @@ public class OrderService {
 
         TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
         return transactionResponseDTO;
+    }
+
+    //@Transactional
+    @Scheduled(fixedDelay = 60000)
+    public void updateExpiredOrders() {
+        List<Order> orders = orderRepository.findAll();
+        for (Order order: orders) {
+            if (order.getTransactions().isEmpty() || OffsetDateTime.now().compareTo(order.getExpiredDate()) > 0) {
+                if (order.getStatus() == OrderStatus.NEW) {
+                    order.setStatus(OrderStatus.EXPIRED);
+                }
+            }
+        }
     }
 }
