@@ -91,7 +91,8 @@ public class OrderService {
         refundTransaction.setType(transaction.getType());
         transactionRepository.save(refundTransaction);
 
-        return convertTransactionToResponse(refundTransaction);
+        TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
+        return transactionResponseDTO;
     }
 
     private OrderResponseWrapper convertOrderToResponseWrapper(Order order) {
@@ -99,7 +100,7 @@ public class OrderService {
         for (Transaction transaction : order.getTransactions()) {
             TransactionResponseDTO transactionResponseDTO = new TransactionResponseDTO();
             transactionResponseDTO.setTransactionId(transaction.getTransactionId());
-            transactionResponseDTO.setOrderId(transaction.getOrder().getOrderId());
+            transactionResponseDTO.setOrderId(transaction.getOrder().getId());
             transactionResponseDTO.setAmount(transaction.getAmount());
             transactionResponseDTO.setCurrency(transaction.getCurrency());
             transactionResponseDTO.setMerchantId(transaction.getMerchantId());
@@ -123,19 +124,5 @@ public class OrderService {
         orderResponseWrapper.setTransactions(transactionResponseDTOList);
 
         return orderResponseWrapper;
-    }
-
-    private TransactionResponseDTO convertTransactionToResponse(Transaction transaction) {
-        TransactionResponseDTO transactionResponseDTO = new TransactionResponseDTO();
-        transactionResponseDTO.setTransactionId(transaction.getTransactionId());
-        transactionResponseDTO.setOrderId(transaction.getOrder().getOrderId());
-        transactionResponseDTO.setAmount(transaction.getAmount());
-        transactionResponseDTO.setCurrency(transaction.getCurrency());
-        transactionResponseDTO.setMerchantId(transaction.getMerchantId());
-        transactionResponseDTO.setDateCreate(transaction.getDateCreate());
-        transactionResponseDTO.setDateUpdate(transaction.getDateUpdate());
-        transactionResponseDTO.setStatus(transaction.getStatus());
-
-        return transactionResponseDTO;
     }
 }
