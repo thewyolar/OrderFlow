@@ -98,12 +98,12 @@ public class OrderService {
         return transactionResponseDTO;
     }
 
-    //@Transactional
+    @Transactional
     @Scheduled(fixedDelay = 60000)
     public void updateExpiredOrders() {
         List<Order> orders = orderRepository.findAll();
         for (Order order: orders) {
-            if (order.getTransactions().isEmpty() || OffsetDateTime.now().compareTo(order.getExpiredDate()) > 0) {
+            if (order.getTransactions().isEmpty() || OffsetDateTime.now().isAfter(order.getExpiredDate())) {
                 if (order.getStatus() == OrderStatus.NEW) {
                     order.setStatus(OrderStatus.EXPIRED);
                 }
