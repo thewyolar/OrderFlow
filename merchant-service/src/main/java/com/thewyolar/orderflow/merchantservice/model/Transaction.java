@@ -44,8 +44,10 @@ public class Transaction {
     private String context;
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private TransactionStatus status;
 
     @Column(name = "type")
+    @Enumerated(EnumType.STRING)
     private TransactionType type;
 }

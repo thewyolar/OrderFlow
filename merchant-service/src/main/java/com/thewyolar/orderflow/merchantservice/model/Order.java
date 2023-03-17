@@ -44,6 +44,7 @@ public class Order {
     private OffsetDateTime expiredDate;
 
     @Column(name = "status")
+    @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
