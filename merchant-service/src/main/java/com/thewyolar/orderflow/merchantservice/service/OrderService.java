@@ -71,7 +71,8 @@ public class OrderService {
 
     public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
         Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException());
-        return convertOrderToResponseWrapper(order);
+        OrderResponseWrapper orderResponseWrapper = modelMapper.map(order, OrderResponseWrapper.class);
+        return orderResponseWrapper;
     }
 
     public TransactionResponseDTO refundOrder(UUID transactionId) throws NotFoundException {
@@ -93,36 +94,5 @@ public class OrderService {
 
         TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
         return transactionResponseDTO;
-    }
-
-    private OrderResponseWrapper convertOrderToResponseWrapper(Order order) {
-        List<TransactionResponseDTO> transactionResponseDTOList = new ArrayList<>();
-        for (Transaction transaction : order.getTransactions()) {
-            TransactionResponseDTO transactionResponseDTO = new TransactionResponseDTO();
-            transactionResponseDTO.setTransactionId(transaction.getTransactionId());
-            transactionResponseDTO.setOrderId(transaction.getOrder().getId());
-            transactionResponseDTO.setAmount(transaction.getAmount());
-            transactionResponseDTO.setCurrency(transaction.getCurrency());
-            transactionResponseDTO.setMerchantId(transaction.getMerchantId());
-            transactionResponseDTO.setDateCreate(transaction.getDateCreate());
-            transactionResponseDTO.setDateUpdate(transaction.getDateUpdate());
-            transactionResponseDTO.setStatus(transaction.getStatus());
-            transactionResponseDTOList.add(transactionResponseDTO);
-        }
-
-        OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
-
-        OrderResponseWrapper orderResponseWrapper = new OrderResponseWrapper();
-        orderResponseWrapper.setOrderId(orderResponseDTO.getOrderId());
-        orderResponseWrapper.setName(orderResponseDTO.getName());
-        orderResponseWrapper.setAmount(orderResponseDTO.getAmount());
-        orderResponseWrapper.setCurrency(orderResponseDTO.getCurrency());
-        orderResponseWrapper.setMerchantId(orderResponseDTO.getMerchantId());
-        orderResponseWrapper.setDateCreate(orderResponseDTO.getDateCreate());
-        orderResponseWrapper.setDateUpdate(orderResponseDTO.getDateUpdate());
-        orderResponseWrapper.setStatus(orderResponseDTO.getStatus());
-        orderResponseWrapper.setTransactions(transactionResponseDTOList);
-
-        return orderResponseWrapper;
     }
 }
