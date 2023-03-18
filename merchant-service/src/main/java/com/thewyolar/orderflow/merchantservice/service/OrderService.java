@@ -13,13 +13,12 @@ import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
 import com.thewyolar.orderflow.merchantservice.util.TransactionType;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.webjars.NotFoundException;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -72,13 +71,14 @@ public class OrderService {
     }
 
     public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException());
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Order not found"));
         OrderResponseWrapper orderResponseWrapper = modelMapper.map(order, OrderResponseWrapper.class);
         return orderResponseWrapper;
     }
 
     public TransactionResponseDTO refundOrder(UUID transactionId) throws NotFoundException {
-        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new NotFoundException());
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
         transaction.setStatus(TransactionStatus.DECLINED);
         transactionRepository.save(transaction);
 
