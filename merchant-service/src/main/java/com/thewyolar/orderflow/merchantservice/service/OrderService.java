@@ -4,8 +4,10 @@ import com.thewyolar.orderflow.merchantservice.dto.OrderDTO;
 import com.thewyolar.orderflow.merchantservice.dto.OrderResponseDTO;
 import com.thewyolar.orderflow.merchantservice.dto.OrderResponseWrapper;
 import com.thewyolar.orderflow.merchantservice.dto.TransactionResponseDTO;
+import com.thewyolar.orderflow.merchantservice.model.Merchant;
 import com.thewyolar.orderflow.merchantservice.model.Order;
 import com.thewyolar.orderflow.merchantservice.model.Transaction;
+import com.thewyolar.orderflow.merchantservice.repository.MerchantRepository;
 import com.thewyolar.orderflow.merchantservice.repository.OrderRepository;
 import com.thewyolar.orderflow.merchantservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.merchantservice.util.OrderStatus;
@@ -26,12 +28,14 @@ import java.util.UUID;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
+    private final MerchantRepository merchantRepository;
     private ModelMapper modelMapper;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<String, String> kafkaTemplate) {
+    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper, KafkaTemplate<String, String> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
+        this.merchantRepository = merchantRepository;
         this.modelMapper = modelMapper;
         this.kafkaTemplate = kafkaTemplate;
     }
@@ -42,7 +46,10 @@ public class OrderService {
         order.setAmount(orderDTO.getAmount());
         order.setCurrency(orderDTO.getCurrency());
         order.setStatus(OrderStatus.NEW);
-        order.setMerchantId(orderDTO.getMerchantId());
+
+        Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId()).orElseThrow(() -> new NotFoundException("Merchant not found"));
+
+        order.setMerchant(merchant);
         OffsetDateTime dateCreate = OffsetDateTime.now();
         OffsetDateTime expiredDate = dateCreate.plusMinutes(10);
         order.setDateCreate(dateCreate);
@@ -56,7 +63,7 @@ public class OrderService {
         transaction.setCurrency(order.getCurrency());
         transaction.setDateCreate(order.getDateCreate().toLocalDateTime());
         transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
-        transaction.setMerchantId(order.getMerchantId());
+        transaction.setMerchant(merchant);
         transaction.setStatus(TransactionStatus.NEW);
         transaction.setType(TransactionType.PAYMENT);
         transactionRepository.save(transaction);
@@ -84,7 +91,7 @@ public class OrderService {
 
         Transaction refundTransaction = new Transaction();
         refundTransaction.setOrder(transaction.getOrder());
-        refundTransaction.setMerchantId(transaction.getMerchantId());
+        refundTransaction.setMerchant(transaction.getMerchant());
         refundTransaction.setAmount(transaction.getAmount());
         refundTransaction.setCurrency(transaction.getCurrency());
         refundTransaction.setDateCreate(transaction.getDateCreate());
