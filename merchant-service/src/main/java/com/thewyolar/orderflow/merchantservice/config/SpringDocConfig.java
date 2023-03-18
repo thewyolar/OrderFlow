@@ -1,4 +1,4 @@
-package com.thewyolar.orderflow.merchantservice;
+package com.thewyolar.orderflow.merchantservice.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.OpenAPI;
