@@ -28,8 +28,9 @@ public class Order {
     @Column(name = "currency")
     private String currency;
 
-    @Column(name = "merchant_id")
-    private UUID merchantId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merchant_id")
+    private Merchant merchant;
 
     @Column(name = "date_create")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
