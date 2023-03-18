@@ -23,8 +23,9 @@ public class Transaction {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @Column(name = "merchant_id")
-    private UUID merchantId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merchant_id")
+    private Merchant merchant;
 
     @Column(name = "amount")
     private Double amount;
