@@ -13,7 +13,7 @@ import java.util.UUID;
 public class Merchant {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID merchantId;
+    private UUID id;
 
     @Column(name = "name")
     private String name;
