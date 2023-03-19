@@ -30,8 +30,20 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseWrapper);
     }
 
-    @PostMapping("/order/{transactionId}/refund")
-    public ResponseEntity<TransactionResponseDTO> refundOrder(@PathVariable UUID transactionId) throws NotFoundException {
+    @DeleteMapping("/{orderId}/delete")
+    public ResponseEntity<String> deleteOrder(@PathVariable UUID orderId) {
+        orderService.deleteOrderById(orderId);
+        return ResponseEntity.ok("Order with id=" + orderId + " deleted successfully.");
+    }
+
+    @PutMapping("/{orderId}/update")
+    public ResponseEntity<OrderResponseWrapper> updateOrder(@PathVariable UUID orderId, @RequestBody OrderDTO order) {
+        OrderResponseWrapper updatedOrder = orderService.updateOrder(orderId, order);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    @PostMapping("/{transactionId}/refund")
+    public ResponseEntity<TransactionResponseDTO> refundOrder(@PathVariable UUID transactionId) {
         TransactionResponseDTO transactionResponseDTO = orderService.refundOrder(transactionId);
         return ResponseEntity.ok(transactionResponseDTO);
     }

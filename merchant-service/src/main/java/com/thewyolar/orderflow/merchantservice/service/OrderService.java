@@ -78,13 +78,38 @@ public class OrderService {
         return orderResponseDTO;
     }
 
-    public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Order not found"));
+    public OrderResponseWrapper getOrderById(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
         OrderResponseWrapper orderResponseWrapper = modelMapper.map(order, OrderResponseWrapper.class);
         return orderResponseWrapper;
     }
 
-    public TransactionResponseDTO refundOrder(UUID transactionId) throws NotFoundException {
+    public void deleteOrderById(UUID orderId) {
+        orderRepository.deleteById(orderId);
+    }
+
+    public OrderResponseWrapper updateOrder(UUID orderId, OrderDTO updatedOrder) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found with id=" + orderId));
+
+        order.setName(updatedOrder.getName());
+        order.setAmount(updatedOrder.getAmount());
+        order.setCurrency(updatedOrder.getCurrency());
+
+        Merchant merchant = merchantRepository.findById(updatedOrder.getMerchantId())
+                .orElseThrow(() -> new NotFoundException("Merchant not found"));
+
+        order.setMerchant(merchant);
+        order.setDateUpdate(OffsetDateTime.now());
+
+        Order savedOrder = orderRepository.save(order);
+        OrderResponseWrapper orderResponseWrapper = modelMapper.map(savedOrder, OrderResponseWrapper.class);
+
+        return orderResponseWrapper;
+    }
+
+    public TransactionResponseDTO refundOrder(UUID transactionId) {
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
         transaction.setStatus(TransactionStatus.DECLINED);
