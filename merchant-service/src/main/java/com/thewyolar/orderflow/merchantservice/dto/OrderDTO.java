@@ -9,7 +9,7 @@ import java.util.UUID;
 @Setter
 public class OrderDTO {
     private String name;
-    private double amount;
+    private Double amount;
     private String currency;
     private UUID merchantId;
 }

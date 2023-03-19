@@ -13,7 +13,7 @@ import java.util.UUID;
 public class OrderResponseWrapper {
     private UUID orderId;
     private String name;
-    private double amount;
+    private Double amount;
     private String currency;
     private UUID merchantId;
     private OffsetDateTime dateCreate;
