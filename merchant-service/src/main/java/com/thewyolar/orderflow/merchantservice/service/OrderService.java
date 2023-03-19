@@ -47,7 +47,8 @@ public class OrderService {
         order.setCurrency(orderDTO.getCurrency());
         order.setStatus(OrderStatus.NEW);
 
-        Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId()).orElseThrow(() -> new NotFoundException("Merchant not found"));
+        Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId())
+                .orElseThrow(() -> new NotFoundException("Merchant not found"));
 
         order.setMerchant(merchant);
         OffsetDateTime dateCreate = OffsetDateTime.now();
@@ -61,7 +62,7 @@ public class OrderService {
         transaction.setOrder(order);
         transaction.setAmount(order.getAmount());
         transaction.setCurrency(order.getCurrency());
-        transaction.setDateCreate(order.getDateCreate().toLocalDateTime());
+        transaction.setDateCreate(dateCreate.toLocalDateTime());
         transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
         transaction.setMerchant(merchant);
         transaction.setStatus(TransactionStatus.NEW);
