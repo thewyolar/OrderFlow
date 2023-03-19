@@ -6,7 +6,6 @@ import com.thewyolar.orderflow.merchantservice.dto.OrderResponseWrapper;
 import com.thewyolar.orderflow.merchantservice.dto.TransactionResponseDTO;
 import com.thewyolar.orderflow.merchantservice.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +13,8 @@ import java.util.UUID;
 
 @RestController
 @CrossOrigin
-@RequestMapping("/api/merchant")
-public class MerchantController {
+@RequestMapping("/api/merchant/order")
+public class OrderController {
     @Autowired
     private OrderService orderService;
 
@@ -25,8 +24,8 @@ public class MerchantController {
         return ResponseEntity.ok(orderResponseDTO);
     }
 
-    @GetMapping("/order/{orderId}")
-    public ResponseEntity<OrderResponseWrapper> getOrder(@PathVariable UUID orderId) throws NotFoundException {
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponseWrapper> getOrder(@PathVariable UUID orderId) {
         OrderResponseWrapper orderResponseWrapper = orderService.getOrderById(orderId);
         return ResponseEntity.ok(orderResponseWrapper);
     }
