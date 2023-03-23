@@ -1,8 +1,8 @@
-package com.thewyolar.orderflow.merchantservice.model;
+package com.thewyolar.orderflow.payformservice.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.thewyolar.orderflow.merchantservice.util.TransactionStatus;
-import com.thewyolar.orderflow.merchantservice.util.TransactionType;
+import com.thewyolar.orderflow.payformservice.util.TransactionStatus;
+import com.thewyolar.orderflow.payformservice.util.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,9 +19,8 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+    @Column(name = "order_id")
+    private UUID orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "merchant_id")

@@ -1,4 +1,4 @@
-package com.thewyolar.orderflow.merchantservice.model;
+package com.thewyolar.orderflow.payformservice.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;

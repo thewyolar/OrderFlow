@@ -1,6 +1,6 @@
-package com.thewyolar.orderflow.merchantservice.repository;
+package com.thewyolar.orderflow.payformservice.repository;
 
-import com.thewyolar.orderflow.merchantservice.model.Merchant;
+import com.thewyolar.orderflow.payformservice.model.Merchant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;

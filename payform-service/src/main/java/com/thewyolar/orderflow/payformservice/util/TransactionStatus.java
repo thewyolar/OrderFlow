@@ -1,4 +1,4 @@
-package com.thewyolar.orderflow.merchantservice.util;
+package com.thewyolar.orderflow.payformservice.util;
 
 public enum TransactionStatus {
     NEW,

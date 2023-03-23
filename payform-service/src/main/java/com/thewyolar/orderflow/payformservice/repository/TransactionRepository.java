@@ -1,6 +1,6 @@
-package com.thewyolar.orderflow.merchantservice.repository;
+package com.thewyolar.orderflow.payformservice.repository;
 
-import com.thewyolar.orderflow.merchantservice.model.Transaction;
+import jakarta.transaction.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
