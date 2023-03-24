@@ -40,8 +40,9 @@ public class PayformService {
         transaction.setCurrency(paymentDTO.getCurrency());
         transaction.setDateCreate(LocalDateTime.now());
         transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.DECLINED);
+        transaction.setStatus(TransactionStatus.NEW);
         transaction.setType(TransactionType.PAYMENT);
+        transaction.setContext(paymentDTO.getCardNumber() + " " + paymentDTO.getCardExpirationDate() + " " + paymentDTO.getCvvCode());
         transactionRepository.save(transaction);
 
         // update order status
