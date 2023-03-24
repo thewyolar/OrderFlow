@@ -12,7 +12,7 @@ import java.util.UUID;
 public class TransactionResponseDTO {
     private UUID transactionId;
     private UUID orderId;
-    private double amount;
+    private Double amount;
     private String currency;
     private UUID merchantId;
     private LocalDateTime dateCreate;
