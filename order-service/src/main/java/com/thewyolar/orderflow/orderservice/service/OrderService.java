@@ -30,14 +30,12 @@ public class OrderService {
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
     private ModelMapper modelMapper;
-    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper, KafkaTemplate<String, String> kafkaTemplate) {
+    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.merchantRepository = merchantRepository;
         this.modelMapper = modelMapper;
-        this.kafkaTemplate = kafkaTemplate;
     }
 
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
@@ -58,16 +56,16 @@ public class OrderService {
         order.setExpiredDate(expiredDate);
         order = orderRepository.save(order);
 
-        Transaction transaction = new Transaction();
-        transaction.setOrder(order);
-        transaction.setAmount(order.getAmount());
-        transaction.setCurrency(order.getCurrency());
-        transaction.setDateCreate(dateCreate.toLocalDateTime());
-        transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
-        transaction.setMerchant(merchant);
-        transaction.setStatus(TransactionStatus.NEW);
-        transaction.setType(TransactionType.PAYMENT);
-        transactionRepository.save(transaction);
+//        Transaction transaction = new Transaction();
+//        transaction.setOrder(order);
+//        transaction.setAmount(order.getAmount());
+//        transaction.setCurrency(order.getCurrency());
+//        transaction.setDateCreate(dateCreate.toLocalDateTime());
+//        transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
+//        transaction.setMerchant(merchant);
+//        transaction.setStatus(TransactionStatus.NEW);
+//        transaction.setType(TransactionType.PAYMENT);
+//        transactionRepository.save(transaction);
 
         OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
         orderResponseDTO.setPayformUrl("https://site.com/order?" + orderResponseDTO.getOrderId());
