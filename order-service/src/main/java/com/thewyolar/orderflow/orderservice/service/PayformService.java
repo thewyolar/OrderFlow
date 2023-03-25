@@ -1,27 +1,27 @@
 package com.thewyolar.orderflow.orderservice.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.model.Order;
 import com.thewyolar.orderflow.orderservice.model.Transaction;
 import com.thewyolar.orderflow.orderservice.repository.OrderRepository;
 import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
-import com.thewyolar.orderflow.orderservice.util.OrderStatus;
-import com.thewyolar.orderflow.orderservice.util.RSAEncryptor;
-import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
-import com.thewyolar.orderflow.orderservice.util.TransactionType;
+import com.thewyolar.orderflow.orderservice.util.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 public class PayformService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
     private ModelMapper modelMapper;
+    private RSAEncryptor encryptor;
 
     public PayformService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper) {
         this.orderRepository = orderRepository;
@@ -34,11 +34,8 @@ public class PayformService {
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
         // Шифруем номер карты и CVV-код
-        RSAEncryptor encryptor = new RSAEncryptor();
         String encryptedCardNumber = encryptor.encrypt(paymentDTO.getCardNumber());
         String encryptedCvv = encryptor.encrypt(paymentDTO.getCvvCode());
-        System.out.println(encryptor.decrypt(encryptedCardNumber));
-        System.out.println(encryptor.decrypt(encryptedCvv));
 
         // Создаем транзакцию и сохраняем зашифрованные данные в контексте
         Transaction transaction = new Transaction();
@@ -50,7 +47,7 @@ public class PayformService {
         transaction.setDateUpdate(LocalDateTime.now());
         transaction.setStatus(TransactionStatus.NEW);
         transaction.setType(TransactionType.PAYMENT);
-        transaction.setContext("CVV=" + encryptedCvv + ";CARD=" + encryptedCardNumber + ";EXPIRATION=" + paymentDTO.getCardExpirationDate());
+        transaction.setContext(new TransactionContext(encryptedCardNumber, encryptedCvv, paymentDTO.getCardExpirationDate()));
         transactionRepository.save(transaction);
 
         // обновляем статус заказа
