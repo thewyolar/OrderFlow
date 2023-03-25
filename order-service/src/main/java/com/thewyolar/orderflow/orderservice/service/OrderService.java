@@ -15,6 +15,7 @@ import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -156,6 +157,42 @@ public class OrderService {
         kafkaTemplate.send("refund_transactions", transactionResponseDTO);
 
         return transactionResponseDTO;
+    }
+
+    @KafkaListener(topics = "refund_transactions")
+    public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) {
+        // Находим транзакцию в БД
+        Transaction transaction = transactionRepository.findById(transactionResponseDTO.getTransactionId()).orElse(null);
+        if (transaction == null) {
+            // Если транзакция не найдена, игнорируем сообщение
+            return;
+        }
+
+        // Проверяем тип транзакции
+        if (transaction.getType() == TransactionType.REFUND) {
+            // Находим все транзакции с типом REFUND и со статусом COMPLETE для данного ордера
+            List<Transaction> refundTransactions = transactionRepository
+                    .findByOrderAndTypeAndStatus(transaction.getOrder(), TransactionType.REFUND, TransactionStatus.COMPLETE);
+
+            // Считаем сумму возврата для всех найденных транзакций
+            Double refundAmount = 0.0;
+            for (Transaction refundTransaction : refundTransactions) {
+                refundAmount += refundTransaction.getAmount();
+            }
+
+            // Если сумма возврата меньше или равна сумме ордера, меняем статус ордера на PARTIAL_REFUNDED или REFUNDED
+            if (refundAmount.compareTo(transaction.getOrder().getAmount()) <= 0) {
+                if (refundAmount == 0) {
+                    transaction.getOrder().setStatus(OrderStatus.REFUNDED);
+                } else {
+                    transaction.getOrder().setStatus(OrderStatus.PARTIAL_REFUNDED);
+                }
+            }
+
+            // Меняем статус транзакции с типом REFUND на COMPLETE
+            transaction.setStatus(TransactionStatus.COMPLETE);
+            transactionRepository.save(transaction);
+        }
     }
 
     @Transactional
