@@ -9,6 +9,8 @@ import com.thewyolar.orderflow.orderservice.repository.OrderRepository;
 import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.*;
 import org.modelmapper.ModelMapper;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.webjars.NotFoundException;
 
@@ -23,10 +25,14 @@ public class PayformService {
     private ModelMapper modelMapper;
     private RSAEncryptor encryptor;
 
-    public PayformService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper) {
+    private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
+
+    public PayformService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.modelMapper = modelMapper;
+        this.kafkaTemplate = kafkaTemplate;
+        this.encryptor = new RSAEncryptor();
     }
 
     public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
@@ -64,6 +70,8 @@ public class PayformService {
         paymentResponseDTO.setDateCreate(transaction.getDateCreate());
         paymentResponseDTO.setDateUpdate(transaction.getDateUpdate());
         paymentResponseDTO.setStatus(order.getStatus());
+
+        kafkaTemplate.send("new_transactions", paymentResponseDTO);
 
         return paymentResponseDTO;
     }
