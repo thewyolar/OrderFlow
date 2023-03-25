@@ -75,4 +75,86 @@ public class PayformService {
 
         return paymentResponseDTO;
     }
+
+    @KafkaListener(topics = "new_transactions")
+    public void consumeTransactionMessage(PaymentResponseDTO paymentResponseDTO) throws JsonProcessingException {
+        // найдем транзакцию в БД
+        Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId()).orElse(null);
+        if (savedTransaction == null) {
+            // обработка ошибки
+        }
+
+        // Получаем контекст из транзакции и расшифровываем карточные данные
+        TransactionContext transactionContext = savedTransaction.getContext();
+        String decryptedCardNumber = encryptor.decrypt(transactionContext.getCardNumber());
+        String decryptedCvv = encryptor.decrypt(transactionContext.getCvv());
+
+        // проверяем номер карты алгоритмом LUNA
+        if (!isLuhnValid(decryptedCardNumber)) {
+            // обработка ошибки
+            savedTransaction.setStatus(TransactionStatus.DECLINED);
+            transactionRepository.save(savedTransaction);
+        } else {
+            String cardType = getCardType(decryptedCardNumber);
+            if (cardType.equals("VISA")) {
+                // отклоняем транзакцию
+                savedTransaction.setStatus(TransactionStatus.DECLINED);
+                transactionRepository.save(savedTransaction);
+            } else if (cardType.equals("MasterCard") || cardType.equals("MIR")) {
+                Order order = savedTransaction.getOrder();
+                if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.PARTIAL_REFUNDED) {
+                    // отклоняем транзакцию
+                    savedTransaction.setStatus(TransactionStatus.DECLINED);
+                    transactionRepository.save(savedTransaction);
+                } else if (order.getStatus() == OrderStatus.NEW || order.getStatus() == OrderStatus.PARTIAL_PAID) {
+                    List<Transaction> transactions = transactionRepository.findByOrderAndStatus(order, TransactionStatus.COMPLETE);
+                    Double totalAmount = null;
+                    for (Transaction transaction : transactions) {
+                        totalAmount += transaction.getAmount();
+                    }
+                    if (totalAmount.compareTo(order.getAmount()) > 0) {
+                        // отклоняем транзакцию
+                        savedTransaction.setStatus(TransactionStatus.DECLINED);
+                        transactionRepository.save(savedTransaction);
+                    } else {
+                        // обновляем статус ордера на PAID
+                        order.setStatus(OrderStatus.PAID);
+                        orderRepository.save(order);
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isLuhnValid(String value) {
+        int sum = Character.getNumericValue(value.charAt(value.length() - 1));
+        int parity = value.length() % 2;
+        for (int i = value.length() - 2; i >= 0; i--) {
+            int summand = Character.getNumericValue(value.charAt(i));
+            if (i % 2 == parity) {
+                int product = summand * 2;
+                summand = (product > 9) ? (product - 9) : product;
+            }
+            sum += summand;
+        }
+        return (sum % 10) == 0;
+    }
+
+    public String getCardType(String cardNumber) {
+        String cardType = null;
+        if (cardNumber.startsWith("4")) {
+            cardType = "Visa";
+        } else if (cardNumber.startsWith("5")) {
+            int secondDigit = Integer.parseInt(cardNumber.substring(1, 2));
+            if (secondDigit >= 1 && secondDigit <= 5) {
+                cardType = "Mastercard";
+            }
+        } else if (cardNumber.startsWith("2")) {
+            int secondDigit = Integer.parseInt(cardNumber.substring(1, 2));
+            if (secondDigit == 2 || secondDigit == 4) {
+                cardType = "MIR";
+            }
+        }
+        return cardType;
+    }
 }
