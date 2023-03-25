@@ -30,12 +30,14 @@ public class OrderService {
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
     private ModelMapper modelMapper;
+    private KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper) {
+    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper, KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.merchantRepository = merchantRepository;
         this.modelMapper = modelMapper;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
@@ -108,24 +110,51 @@ public class OrderService {
     }
 
     public TransactionResponseDTO refundOrder(UUID transactionId) {
-        Transaction transaction = transactionRepository.findById(transactionId)
+        Transaction initialTransaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
-        transaction.setStatus(TransactionStatus.DECLINED);
-        transactionRepository.save(transaction);
+        initialTransaction.setStatus(TransactionStatus.DECLINED);
+        transactionRepository.save(initialTransaction);
 
+//        Transaction refundTransaction = new Transaction();
+//        refundTransaction.setOrder(initialTransaction.getOrder());
+//        refundTransaction.setMerchant(initialTransaction.getMerchant());
+//        refundTransaction.setAmount(initialTransaction.getAmount());
+//        refundTransaction.setCurrency(initialTransaction.getCurrency());
+//        refundTransaction.setDateCreate(initialTransaction.getDateCreate());
+//        refundTransaction.setDateUpdate(initialTransaction.getDateUpdate());
+//        refundTransaction.setContext(initialTransaction.getContext());
+//        refundTransaction.setStatus(TransactionStatus.NEW);
+//        refundTransaction.setType(initialTransaction.getType());
+//        transactionRepository.save(refundTransaction);
+//
+//        TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
+//        return transactionResponseDTO;
+
+        // Проверяем, что первоначальная транзакция оплаты имеет статус COMPLETE
+        if (initialTransaction.getType() != TransactionType.PAYMENT || initialTransaction.getStatus() != TransactionStatus.COMPLETE) {
+            // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND и статусом DECLINED
+            TransactionResponseDTO transactionResponseDTO = modelMapper.map(initialTransaction, TransactionResponseDTO.class);
+            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
+            return transactionResponseDTO;
+        }
+
+        // Создаем новую транзакцию с типом REFUND и статусом NEW
         Transaction refundTransaction = new Transaction();
-        refundTransaction.setOrder(transaction.getOrder());
-        refundTransaction.setMerchant(transaction.getMerchant());
-        refundTransaction.setAmount(transaction.getAmount());
-        refundTransaction.setCurrency(transaction.getCurrency());
-        refundTransaction.setDateCreate(transaction.getDateCreate());
-        refundTransaction.setDateUpdate(transaction.getDateUpdate());
-        refundTransaction.setContext(transaction.getContext());
+        refundTransaction.setType(TransactionType.REFUND);
         refundTransaction.setStatus(TransactionStatus.NEW);
-        refundTransaction.setType(transaction.getType());
-        transactionRepository.save(refundTransaction);
+        refundTransaction.setOrder(initialTransaction.getOrder());
+        refundTransaction.setMerchant(initialTransaction.getMerchant());
+        refundTransaction.setAmount(initialTransaction.getAmount());
+        refundTransaction.setCurrency(initialTransaction.getCurrency());
+        refundTransaction.setDateCreate(initialTransaction.getDateCreate());
+        refundTransaction.setDateUpdate(initialTransaction.getDateUpdate());
+        refundTransaction.setContext(initialTransaction.getContext());
 
+        // Сохраняем транзакцию в БД и отправляем сообщение в Kafka с транзакцией типа REFUND и статусом NEW
+        refundTransaction = transactionRepository.save(refundTransaction);
         TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
+        kafkaTemplate.send("refund_transactions", transactionResponseDTO);
+
         return transactionResponseDTO;
     }
 
