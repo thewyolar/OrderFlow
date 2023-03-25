@@ -3,6 +3,7 @@ package com.thewyolar.orderflow.orderservice.repository;
 import com.thewyolar.orderflow.orderservice.model.Order;
 import com.thewyolar.orderflow.orderservice.model.Transaction;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
+import com.thewyolar.orderflow.orderservice.util.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,4 +13,6 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     List<Transaction> findByOrderAndStatus(Order order, TransactionStatus transactionStatus);
+
+    List<Transaction> findByOrderAndTypeAndStatus(Order order, TransactionType transactionType, TransactionStatus transactionStatus);
 }
