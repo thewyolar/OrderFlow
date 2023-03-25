@@ -1,6 +1,8 @@
 package com.thewyolar.orderflow.orderservice.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.thewyolar.orderflow.orderservice.util.TransactionContext;
+import com.thewyolar.orderflow.orderservice.util.TransactionContextConverter;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
 import jakarta.persistence.*;
@@ -41,8 +43,9 @@ public class Transaction {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateUpdate;
 
-    @Column(name = "context", length = 1000)
-    private String context;
+    @Column(name = "context")
+    @Convert(converter = TransactionContextConverter.class)
+    private TransactionContext context;
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
