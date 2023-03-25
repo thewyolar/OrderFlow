@@ -1,6 +1,5 @@
 package com.thewyolar.orderflow.orderservice.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.model.Order;
@@ -19,7 +18,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
-public class PayformService {
+public class TransactionService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
     private ModelMapper modelMapper;
@@ -27,7 +26,7 @@ public class PayformService {
 
     private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
 
-    public PayformService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate) {
+    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.modelMapper = modelMapper;
@@ -77,7 +76,7 @@ public class PayformService {
     }
 
     @KafkaListener(topics = "new_transactions")
-    public void consumeTransactionMessage(PaymentResponseDTO paymentResponseDTO) throws JsonProcessingException {
+    public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
         // найдем транзакцию в БД
         Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId()).orElse(null);
         if (savedTransaction == null) {
