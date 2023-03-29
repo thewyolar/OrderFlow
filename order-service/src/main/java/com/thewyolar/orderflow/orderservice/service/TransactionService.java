@@ -1,5 +1,6 @@
 package com.thewyolar.orderflow.orderservice.service;
 
+import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.model.Order;
@@ -16,6 +17,7 @@ import org.webjars.NotFoundException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TransactionService {
@@ -32,6 +34,22 @@ public class TransactionService {
         this.modelMapper = modelMapper;
         this.kafkaTemplate = kafkaTemplate;
         this.encryptor = new RSAEncryptor();
+    }
+
+    public OrderStatusResponseDTO getOrderStatus(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        OrderStatusResponseDTO response = new OrderStatusResponseDTO();
+        response.setOrderId(order.getId());
+        response.setName(order.getName());
+        response.setAmount(order.getAmount());
+        response.setCurrency(order.getCurrency());
+        response.setDateCreate(order.getDateCreate());
+        response.setDateUpdate(order.getDateUpdate());
+        response.setStatus(order.getStatus());
+
+        return response;
     }
 
     public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
@@ -139,7 +157,7 @@ public class TransactionService {
         return (sum % 10) == 0;
     }
 
-    public String getCardType(String cardNumber) {
+    private String getCardType(String cardNumber) {
         String cardType = null;
         if (cardNumber.startsWith("4")) {
             cardType = "Visa";
