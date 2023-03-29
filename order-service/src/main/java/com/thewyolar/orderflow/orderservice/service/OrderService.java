@@ -59,22 +59,8 @@ public class OrderService {
         order.setExpiredDate(expiredDate);
         order = orderRepository.save(order);
 
-//        Transaction transaction = new Transaction();
-//        transaction.setOrder(order);
-//        transaction.setAmount(order.getAmount());
-//        transaction.setCurrency(order.getCurrency());
-//        transaction.setDateCreate(dateCreate.toLocalDateTime());
-//        transaction.setDateUpdate(order.getDateUpdate().toLocalDateTime());
-//        transaction.setMerchant(merchant);
-//        transaction.setStatus(TransactionStatus.NEW);
-//        transaction.setType(TransactionType.PAYMENT);
-//        transactionRepository.save(transaction);
-
         OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
         orderResponseDTO.setPayformUrl("https://site.com/order?" + orderResponseDTO.getOrderId());
-
-//        String message = "New order created with id: " + orderResponseDTO.getOrderId();
-//        kafkaTemplate.send("order-topic", message);
 
         return orderResponseDTO;
     }
@@ -83,6 +69,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
         OrderResponseWrapper orderResponseWrapper = modelMapper.map(order, OrderResponseWrapper.class);
+
         return orderResponseWrapper;
     }
 
@@ -115,21 +102,6 @@ public class OrderService {
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
         initialTransaction.setStatus(TransactionStatus.DECLINED);
         transactionRepository.save(initialTransaction);
-
-//        Transaction refundTransaction = new Transaction();
-//        refundTransaction.setOrder(initialTransaction.getOrder());
-//        refundTransaction.setMerchant(initialTransaction.getMerchant());
-//        refundTransaction.setAmount(initialTransaction.getAmount());
-//        refundTransaction.setCurrency(initialTransaction.getCurrency());
-//        refundTransaction.setDateCreate(initialTransaction.getDateCreate());
-//        refundTransaction.setDateUpdate(initialTransaction.getDateUpdate());
-//        refundTransaction.setContext(initialTransaction.getContext());
-//        refundTransaction.setStatus(TransactionStatus.NEW);
-//        refundTransaction.setType(initialTransaction.getType());
-//        transactionRepository.save(refundTransaction);
-//
-//        TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
-//        return transactionResponseDTO;
 
         // Проверяем, что первоначальная транзакция оплаты имеет статус COMPLETE
         if (initialTransaction.getType() != TransactionType.PAYMENT || initialTransaction.getStatus() != TransactionStatus.COMPLETE) {
