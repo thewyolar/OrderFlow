@@ -9,6 +9,7 @@ import com.thewyolar.orderflow.orderservice.repository.OrderRepository;
 import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.*;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class TransactionService {
@@ -25,14 +27,15 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private ModelMapper modelMapper;
     private RSAEncryptor encryptor;
-
     private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
-    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate) {
+    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate, RedisTemplate<String, String> redisTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.modelMapper = modelMapper;
         this.kafkaTemplate = kafkaTemplate;
+        this.redisTemplate = redisTemplate;
         this.encryptor = new RSAEncryptor();
     }
 
@@ -73,6 +76,12 @@ public class TransactionService {
         transaction.setContext(new TransactionContext(encryptedCardNumber, encryptedCvv, paymentDTO.getCardExpirationDate()));
         transactionRepository.save(transaction);
 
+        // Сохраняем расшифрованные данные в Redis
+        String cardNumberKey = "cardNumber:" + transaction.getId();
+        String cvvKey = "cvv:" + transaction.getId();
+        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
+
         // обновляем статус заказа
         order.setStatus(OrderStatus.PAID);
         order.setDateUpdate(OffsetDateTime.now());
@@ -106,9 +115,19 @@ public class TransactionService {
         String decryptedCardNumber = encryptor.decrypt(transactionContext.getCardNumber());
         String decryptedCvv = encryptor.decrypt(transactionContext.getCvv());
 
+        // Сохраняем расшифрованные данные в Redis
+//        String key = "transaction:" + savedTransaction.getId();
+//        redisTemplate.opsForHash().put(key, "cardNumber", decryptedCardNumber);
+//        redisTemplate.opsForHash().put(key, "cvv", decryptedCvv);
+//        redisTemplate.expire(key, 20, TimeUnit.MINUTES);
+
+        // Сохраняем расшифрованные данные карты в Redis
+//        redisTemplate.opsForValue().set("cardNumber:" + savedTransaction.getId(), decryptedCardNumber, 20, TimeUnit.MINUTES);
+//        redisTemplate.opsForValue().set("cvv:" + savedTransaction.getId(), decryptedCvv, 20, TimeUnit.MINUTES);
+//        redisTemplate.opsForValue().set("cardExpirationDate:" + savedTransaction.getId(), transactionContext.getCardExpirationDate(), 20, TimeUnit.MINUTES);
+
         // проверяем номер карты алгоритмом LUNA
         if (!isLuhnValid(decryptedCardNumber)) {
-            // обработка ошибки
             savedTransaction.setStatus(TransactionStatus.DECLINED);
             transactionRepository.save(savedTransaction);
         } else {
