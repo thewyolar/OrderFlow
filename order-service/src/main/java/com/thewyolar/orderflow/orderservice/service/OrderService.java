@@ -4,6 +4,8 @@ import com.thewyolar.orderflow.orderservice.dto.OrderDTO;
 import com.thewyolar.orderflow.orderservice.dto.OrderResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.OrderResponseWrapper;
 import com.thewyolar.orderflow.orderservice.dto.TransactionResponseDTO;
+import com.thewyolar.orderflow.orderservice.service.mapper.OrderMapper;
+import com.thewyolar.orderflow.orderservice.service.mapper.TransactionMapper;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.model.Order;
 import com.thewyolar.orderflow.orderservice.model.Transaction;
@@ -14,7 +16,6 @@ import com.thewyolar.orderflow.orderservice.util.OrderStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
 import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,22 +31,21 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
     private final MerchantRepository merchantRepository;
-    private ModelMapper modelMapper;
-    private KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
+    private final OrderMapper orderMapper;
+    private final TransactionMapper transactionMapper;
+    private final KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, ModelMapper modelMapper, KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate) {
+    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.merchantRepository = merchantRepository;
-        this.modelMapper = modelMapper;
+        this.orderMapper = orderMapper;
+        this.transactionMapper = transactionMapper;
         this.kafkaTemplate = kafkaTemplate;
     }
 
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
-        Order order = new Order();
-        order.setName(orderDTO.getName());
-        order.setAmount(orderDTO.getAmount());
-        order.setCurrency(orderDTO.getCurrency());
+        Order order = orderMapper.toOrder(orderDTO);
         order.setStatus(OrderStatus.NEW);
 
         Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId())
@@ -59,7 +59,7 @@ public class OrderService {
         order.setExpiredDate(expiredDate);
         order = orderRepository.save(order);
 
-        OrderResponseDTO orderResponseDTO = modelMapper.map(order, OrderResponseDTO.class);
+        OrderResponseDTO orderResponseDTO = orderMapper.toOrderResponseDTO(order);
         orderResponseDTO.setPayformUrl("https://site.com/order?" + orderResponseDTO.getOrderId());
 
         return orderResponseDTO;
@@ -68,9 +68,8 @@ public class OrderService {
     public OrderResponseWrapper getOrderById(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
-        OrderResponseWrapper orderResponseWrapper = modelMapper.map(order, OrderResponseWrapper.class);
 
-        return orderResponseWrapper;
+        return orderMapper.toOrderResponseWrapper(order);
     }
 
     public void deleteOrderById(UUID orderId) {
@@ -92,9 +91,8 @@ public class OrderService {
         order.setDateUpdate(OffsetDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
-        OrderResponseWrapper orderResponseWrapper = modelMapper.map(savedOrder, OrderResponseWrapper.class);
 
-        return orderResponseWrapper;
+        return orderMapper.toOrderResponseWrapper(savedOrder);
     }
 
     public TransactionResponseDTO refundOrder(UUID transactionId) {
@@ -106,7 +104,7 @@ public class OrderService {
         // Проверяем, что первоначальная транзакция оплаты имеет статус COMPLETE
         if (initialTransaction.getType() != TransactionType.PAYMENT || initialTransaction.getStatus() != TransactionStatus.COMPLETE) {
             // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND и статусом DECLINED
-            TransactionResponseDTO transactionResponseDTO = modelMapper.map(initialTransaction, TransactionResponseDTO.class);
+            TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(initialTransaction);
             kafkaTemplate.send("refund_transactions", transactionResponseDTO);
             return transactionResponseDTO;
         }
@@ -125,7 +123,7 @@ public class OrderService {
 
         // Сохраняем транзакцию в БД и отправляем сообщение в Kafka с транзакцией типа REFUND и статусом NEW
         refundTransaction = transactionRepository.save(refundTransaction);
-        TransactionResponseDTO transactionResponseDTO = modelMapper.map(refundTransaction, TransactionResponseDTO.class);
+        TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(refundTransaction);
         kafkaTemplate.send("refund_transactions", transactionResponseDTO);
 
         return transactionResponseDTO;

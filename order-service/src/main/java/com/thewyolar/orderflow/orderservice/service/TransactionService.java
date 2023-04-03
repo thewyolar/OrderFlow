@@ -3,12 +3,13 @@ package com.thewyolar.orderflow.orderservice.service;
 import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
+import com.thewyolar.orderflow.orderservice.service.mapper.OrderMapper;
+import com.thewyolar.orderflow.orderservice.service.mapper.TransactionMapper;
 import com.thewyolar.orderflow.orderservice.model.Order;
 import com.thewyolar.orderflow.orderservice.model.Transaction;
 import com.thewyolar.orderflow.orderservice.repository.OrderRepository;
 import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.*;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,21 +20,22 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class TransactionService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
-    private ModelMapper modelMapper;
-    private RSAEncryptor encryptor;
-    private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
-    private RedisTemplate<String, String> redisTemplate;
+    private final OrderMapper orderMapper;
+    private final TransactionMapper transactionMapper;
+    private final RSAEncryptor encryptor;
+    private final KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
 
-    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, ModelMapper modelMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate, RedisTemplate<String, String> redisTemplate) {
+    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate, RedisTemplate<String, String> redisTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
-        this.modelMapper = modelMapper;
+        this.orderMapper = orderMapper;
+        this.transactionMapper = transactionMapper;
         this.kafkaTemplate = kafkaTemplate;
         this.redisTemplate = redisTemplate;
         this.encryptor = new RSAEncryptor();
@@ -43,16 +45,7 @@ public class TransactionService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        OrderStatusResponseDTO response = new OrderStatusResponseDTO();
-        response.setOrderId(order.getId());
-        response.setName(order.getName());
-        response.setAmount(order.getAmount());
-        response.setCurrency(order.getCurrency());
-        response.setDateCreate(order.getDateCreate());
-        response.setDateUpdate(order.getDateUpdate());
-        response.setStatus(order.getStatus());
-
-        return response;
+        return orderMapper.toOrderStatusResponseDTO(order);
     }
 
     public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
@@ -77,10 +70,10 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         // Сохраняем расшифрованные данные в Redis
-        String cardNumberKey = "cardNumber:" + transaction.getId();
-        String cvvKey = "cvv:" + transaction.getId();
-        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
-        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
+//        String cardNumberKey = "cardNumber:" + transaction.getId();
+//        String cvvKey = "cvv:" + transaction.getId();
+//        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
+//        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
 
         // обновляем статус заказа
         order.setStatus(OrderStatus.PAID);
@@ -88,13 +81,7 @@ public class TransactionService {
         orderRepository.save(order);
 
         // формируем ответ
-        PaymentResponseDTO paymentResponseDTO = new PaymentResponseDTO();
-        paymentResponseDTO.setTransactionId(transaction.getId());
-        paymentResponseDTO.setOrderId(order.getId());
-        paymentResponseDTO.setAmount(transaction.getAmount());
-        paymentResponseDTO.setCurrency(transaction.getCurrency());
-        paymentResponseDTO.setDateCreate(transaction.getDateCreate());
-        paymentResponseDTO.setDateUpdate(transaction.getDateUpdate());
+        PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
         paymentResponseDTO.setStatus(order.getStatus());
 
         kafkaTemplate.send("new_transactions", paymentResponseDTO);
@@ -114,17 +101,6 @@ public class TransactionService {
         TransactionContext transactionContext = savedTransaction.getContext();
         String decryptedCardNumber = encryptor.decrypt(transactionContext.getCardNumber());
         String decryptedCvv = encryptor.decrypt(transactionContext.getCvv());
-
-        // Сохраняем расшифрованные данные в Redis
-//        String key = "transaction:" + savedTransaction.getId();
-//        redisTemplate.opsForHash().put(key, "cardNumber", decryptedCardNumber);
-//        redisTemplate.opsForHash().put(key, "cvv", decryptedCvv);
-//        redisTemplate.expire(key, 20, TimeUnit.MINUTES);
-
-        // Сохраняем расшифрованные данные карты в Redis
-//        redisTemplate.opsForValue().set("cardNumber:" + savedTransaction.getId(), decryptedCardNumber, 20, TimeUnit.MINUTES);
-//        redisTemplate.opsForValue().set("cvv:" + savedTransaction.getId(), decryptedCvv, 20, TimeUnit.MINUTES);
-//        redisTemplate.opsForValue().set("cardExpirationDate:" + savedTransaction.getId(), transactionContext.getCardExpirationDate(), 20, TimeUnit.MINUTES);
 
         // проверяем номер карты алгоритмом LUNA
         if (!isLuhnValid(decryptedCardNumber)) {
