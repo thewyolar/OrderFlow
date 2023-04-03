@@ -15,11 +15,11 @@ import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.OrderStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
-import jakarta.transaction.Transactional;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
 
 import java.time.OffsetDateTime;
@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class OrderService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;

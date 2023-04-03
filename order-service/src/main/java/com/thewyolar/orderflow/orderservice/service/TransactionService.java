@@ -14,14 +14,17 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
+@Transactional
 public class TransactionService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
@@ -70,10 +73,10 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         // Сохраняем расшифрованные данные в Redis
-//        String cardNumberKey = "cardNumber:" + transaction.getId();
-//        String cvvKey = "cvv:" + transaction.getId();
-//        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
-//        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
+        String cardNumberKey = "cardNumber:" + transaction.getId();
+        String cvvKey = "cvv:" + transaction.getId();
+        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
 
         // обновляем статус заказа
         order.setStatus(OrderStatus.PAID);
