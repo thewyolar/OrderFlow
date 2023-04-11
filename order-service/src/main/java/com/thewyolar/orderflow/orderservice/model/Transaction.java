@@ -43,7 +43,7 @@ public class Transaction {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateUpdate;
 
-    @Column(name = "context", length = 1000)
+    @Column(name = "context")
     @Convert(converter = TransactionContextConverter.class)
     private TransactionContext context;
 

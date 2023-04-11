@@ -67,7 +67,7 @@ public class TransactionService {
         transaction.setCurrency(paymentDTO.getCurrency());
         transaction.setDateCreate(LocalDateTime.now());
         transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.NEW);
+        transaction.setStatus(TransactionStatus.COMPLETE);
         transaction.setType(TransactionType.PAYMENT);
         transaction.setContext(new TransactionContext(encryptedCardNumber, encryptedCvv, paymentDTO.getCardExpirationDate()));
         transactionRepository.save(transaction);
@@ -85,7 +85,6 @@ public class TransactionService {
 
         // формируем ответ
         PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
-        paymentResponseDTO.setStatus(TransactionStatus.COMPLETE);
 
         kafkaTemplate.send("new_transactions", paymentResponseDTO);
 
