@@ -1,6 +1,6 @@
 package com.thewyolar.orderflow.orderservice.dto;
 
-import com.thewyolar.orderflow.orderservice.util.OrderStatus;
+import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +16,6 @@ public class PaymentResponseDTO {
     private String currency;
     private LocalDateTime dateCreate;
     private LocalDateTime dateUpdate;
-    private OrderStatus status;
+    private TransactionStatus status;
 }
 

@@ -85,7 +85,7 @@ public class TransactionService {
 
         // формируем ответ
         PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
-        paymentResponseDTO.setStatus(order.getStatus());
+        paymentResponseDTO.setStatus(TransactionStatus.COMPLETE);
 
         kafkaTemplate.send("new_transactions", paymentResponseDTO);
 
