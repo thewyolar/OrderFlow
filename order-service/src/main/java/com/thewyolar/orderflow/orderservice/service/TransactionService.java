@@ -159,7 +159,7 @@ public class TransactionService {
     private String getCardType(String cardNumber) {
         String cardType = null;
         if (cardNumber.startsWith("4")) {
-            cardType = "Visa";
+            cardType = "VISA";
         } else if (cardNumber.startsWith("5")) {
             int secondDigit = Integer.parseInt(cardNumber.substring(1, 2));
             if (secondDigit >= 1 && secondDigit <= 5) {
