@@ -44,7 +44,7 @@ public class OrderService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
         Order order = orderMapper.toOrder(orderDTO);
         order.setStatus(OrderStatus.NEW);
