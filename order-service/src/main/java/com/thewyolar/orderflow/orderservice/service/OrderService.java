@@ -83,16 +83,6 @@ public class OrderService {
     public TransactionResponseDTO refundOrder(UUID transactionId) {
         Transaction initialTransaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
-        initialTransaction.setStatus(TransactionStatus.DECLINED);
-        transactionRepository.save(initialTransaction);
-
-        // Проверяем, что первоначальная транзакция оплаты имеет статус COMPLETE
-        if (initialTransaction.getType() != TransactionType.PAYMENT || initialTransaction.getStatus() != TransactionStatus.COMPLETE) {
-            // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND и статусом DECLINED
-            TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(initialTransaction);
-            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
-            return transactionResponseDTO;
-        }
 
         // Создаем новую транзакцию с типом REFUND и статусом NEW
         Transaction refundTransaction = new Transaction();
@@ -111,6 +101,15 @@ public class OrderService {
         TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(refundTransaction);
         kafkaTemplate.send("refund_transactions", transactionResponseDTO);
 
+        // TODO: Если первоначальной транзакции нет
+        // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND
+        if (!initialTransaction.getType().equals(TransactionType.PAYMENT) || !initialTransaction.getStatus().equals(TransactionStatus.COMPLETE)) {
+            transactionResponseDTO.setStatus(TransactionStatus.DECLINED);
+            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
+        } else {
+            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
+        }
+
         return transactionResponseDTO;
     }
 
@@ -118,14 +117,17 @@ public class OrderService {
     @KafkaListener(topics = "refund_transactions")
     public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) {
         // Находим транзакцию в БД
-        Transaction transaction = transactionRepository.findById(transactionResponseDTO.getTransactionId()).orElse(null);
-        if (transaction == null) {
-            // Если транзакция не найдена, игнорируем сообщение
-            return;
-        }
+        Transaction transaction = transactionRepository.findById(transactionResponseDTO.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         // Проверяем тип транзакции
         if (transaction.getType() == TransactionType.REFUND) {
+            // Проверяем статус транзакции, и если он DECLINED, меняем статус на DECLINED и сохраняем транзакцию в БД
+            if (transactionResponseDTO.getStatus() == TransactionStatus.DECLINED) {
+                transaction.setStatus(TransactionStatus.DECLINED);
+                transactionRepository.save(transaction);
+            }
+
             // Находим все транзакции с типом REFUND и со статусом COMPLETE для данного ордера
             List<Transaction> refundTransactions = transactionRepository
                     .findByOrderAndTypeAndStatus(transaction.getOrder(), TransactionType.REFUND, TransactionStatus.COMPLETE);
