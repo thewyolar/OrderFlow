@@ -24,7 +24,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@Transactional
 public class TransactionService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
@@ -44,6 +43,7 @@ public class TransactionService {
         this.encryptor = new RSAEncryptor();
     }
 
+    @Transactional(readOnly = true)
     public OrderStatusResponseDTO getOrderStatus(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
@@ -51,6 +51,7 @@ public class TransactionService {
         return orderMapper.toOrderStatusResponseDTO(order);
     }
 
+    @Transactional
     public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
         Order order = orderRepository.findById(paymentDTO.getOrderId())
                 .orElseThrow(() -> new NotFoundException("Order not found"));
@@ -91,6 +92,7 @@ public class TransactionService {
         return paymentResponseDTO;
     }
 
+    @Transactional
     @KafkaListener(topics = "new_transactions")
     public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
         // найдем транзакцию в БД

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@Transactional
 public class OrderService {
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
@@ -45,6 +44,7 @@ public class OrderService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    @Transactional(readOnly = true)
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
         Order order = orderMapper.toOrder(orderDTO);
         order.setStatus(OrderStatus.NEW);
@@ -66,6 +66,7 @@ public class OrderService {
         return orderResponseDTO;
     }
 
+    @Transactional(readOnly = true)
     public OrderResponseWrapper getOrderById(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
@@ -73,6 +74,7 @@ public class OrderService {
         return orderMapper.toOrderResponseWrapper(order);
     }
 
+    @Transactional
     public void deleteOrderById(UUID orderId) {
         orderRepository.deleteById(orderId);
     }
@@ -130,6 +132,7 @@ public class OrderService {
         return transactionResponseDTO;
     }
 
+    @Transactional
     @KafkaListener(topics = "refund_transactions")
     public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) {
         // Находим транзакцию в БД
