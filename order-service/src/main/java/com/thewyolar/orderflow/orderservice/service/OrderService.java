@@ -79,25 +79,7 @@ public class OrderService {
         orderRepository.deleteById(orderId);
     }
 
-    public OrderResponseWrapper updateOrder(UUID orderId, OrderDTO updatedOrder) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found with id=" + orderId));
-
-        order.setName(updatedOrder.getName());
-        order.setAmount(updatedOrder.getAmount());
-        order.setCurrency(updatedOrder.getCurrency());
-
-        Merchant merchant = merchantRepository.findById(updatedOrder.getMerchantId())
-                .orElseThrow(() -> new NotFoundException("Merchant not found"));
-
-        order.setMerchant(merchant);
-        order.setDateUpdate(OffsetDateTime.now());
-
-        Order savedOrder = orderRepository.save(order);
-
-        return orderMapper.toOrderResponseWrapper(savedOrder);
-    }
-
+    @Transactional
     public TransactionResponseDTO refundOrder(UUID transactionId) {
         Transaction initialTransaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
