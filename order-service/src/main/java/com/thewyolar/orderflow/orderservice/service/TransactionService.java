@@ -68,7 +68,7 @@ public class TransactionService {
         transaction.setCurrency(paymentDTO.getCurrency());
         transaction.setDateCreate(LocalDateTime.now());
         transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.COMPLETE);
+        transaction.setStatus(TransactionStatus.NEW);
         transaction.setType(TransactionType.PAYMENT);
         transaction.setContext(new TransactionContext(encryptedCardNumber, encryptedCvv, paymentDTO.getCardExpirationDate()));
         transactionRepository.save(transaction);
