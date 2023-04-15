@@ -56,11 +56,11 @@ public class TransactionService {
         Order order = orderRepository.findById(paymentDTO.getOrderId())
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        // Шифруем номер карты и CVV-код
-        String encryptedCardNumber = encryptor.encrypt(paymentDTO.getCardNumber());
-        String encryptedCvv = encryptor.encrypt(paymentDTO.getCvvCode());
+        // Расшифровываем номер карты и CVV-код
+        String cardNumber = encryptor.decrypt(paymentDTO.getCardNumber());
+        String cvv = encryptor.decrypt(paymentDTO.getCvvCode());
 
-        // Создаем транзакцию и сохраняем зашифрованные данные в контексте
+        // Создаем транзакцию
         Transaction transaction = new Transaction();
         transaction.setOrder(order);
         transaction.setMerchant(order.getMerchant());
@@ -68,18 +68,18 @@ public class TransactionService {
         transaction.setCurrency(paymentDTO.getCurrency());
         transaction.setDateCreate(LocalDateTime.now());
         transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.NEW);
+        transaction.setStatus(TransactionStatus.COMPLETE); // TODO нужно без этого
         transaction.setType(TransactionType.PAYMENT);
-        transaction.setContext(new TransactionContext(encryptedCardNumber, encryptedCvv, paymentDTO.getCardExpirationDate()));
         transactionRepository.save(transaction);
 
         // Сохраняем расшифрованные данные в Redis
         String cardNumberKey = "cardNumber:" + transaction.getId();
         String cvvKey = "cvv:" + transaction.getId();
-        redisTemplate.opsForValue().set(cardNumberKey, paymentDTO.getCardNumber(), 20, TimeUnit.MINUTES);
-        redisTemplate.opsForValue().set(cvvKey, paymentDTO.getCvvCode(), 20, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(cardNumberKey, cardNumber, 20, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(cvvKey, cvv, 20, TimeUnit.MINUTES);
 
         // обновляем статус заказа
+        // TODO нужно без этого
         order.setStatus(OrderStatus.PAID);
         order.setDateUpdate(OffsetDateTime.now());
         orderRepository.save(order);
@@ -97,35 +97,34 @@ public class TransactionService {
     @KafkaListener(topics = "new_transactions")
     public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
         // найдем транзакцию в БД
-        Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId()).orElse(null);
-        if (savedTransaction == null) {
-            // обработка ошибки
-        }
+        Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
-        // Получаем контекст из транзакции и расшифровываем карточные данные
-        TransactionContext transactionContext = savedTransaction.getContext();
-        String decryptedCardNumber = encryptor.decrypt(transactionContext.getCardNumber());
-        String decryptedCvv = encryptor.decrypt(transactionContext.getCvv());
+        // Получаем данные из Redis
+        String cardNumberKey = "cardNumber:" + paymentResponseDTO.getTransactionId();
+        String cvvKey = "cvv:" + paymentResponseDTO.getTransactionId();
+        String cardNumber = redisTemplate.opsForValue().get(cardNumberKey);
+        String cvv = redisTemplate.opsForValue().get(cvvKey);
 
         // проверяем номер карты алгоритмом LUNA
-        if (!isLuhnValid(decryptedCardNumber)) {
+        if (!isLuhnValid(cardNumber)) {
             savedTransaction.setStatus(TransactionStatus.DECLINED);
             transactionRepository.save(savedTransaction);
         } else {
-            String cardType = getCardType(decryptedCardNumber);
+            String cardType = getCardType(cardNumber);
             if (cardType.equals("VISA")) {
                 // отклоняем транзакцию
                 savedTransaction.setStatus(TransactionStatus.DECLINED);
                 transactionRepository.save(savedTransaction);
             } else if (cardType.equals("MasterCard") || cardType.equals("MIR")) {
                 Order order = savedTransaction.getOrder();
-                if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.PARTIAL_REFUNDED) {
+                if (order.getStatus().equals(OrderStatus.PAID) || order.getStatus().equals(OrderStatus.PARTIAL_REFUNDED)) {
                     // отклоняем транзакцию
                     savedTransaction.setStatus(TransactionStatus.DECLINED);
                     transactionRepository.save(savedTransaction);
-                } else if (order.getStatus() == OrderStatus.NEW || order.getStatus() == OrderStatus.PARTIAL_PAID) {
+                } else if (order.getStatus().equals(OrderStatus.NEW) || order.getStatus().equals(OrderStatus.PARTIAL_PAID)) {
                     List<Transaction> transactions = transactionRepository.findByOrderAndStatus(order, TransactionStatus.COMPLETE);
-                    Double totalAmount = null;
+                    Double totalAmount = 0.0;
                     for (Transaction transaction : transactions) {
                         totalAmount += transaction.getAmount();
                     }
@@ -164,7 +163,7 @@ public class TransactionService {
         } else if (cardNumber.startsWith("5")) {
             int secondDigit = Integer.parseInt(cardNumber.substring(1, 2));
             if (secondDigit >= 1 && secondDigit <= 5) {
-                cardType = "Mastercard";
+                cardType = "MasterCard";
             }
         } else if (cardNumber.startsWith("2")) {
             int secondDigit = Integer.parseInt(cardNumber.substring(1, 2));
