@@ -1,10 +1,8 @@
 package com.thewyolar.orderflow.orderservice.controller;
 
-import com.thewyolar.orderflow.orderservice.dto.OrderDTO;
-import com.thewyolar.orderflow.orderservice.dto.OrderResponseDTO;
-import com.thewyolar.orderflow.orderservice.dto.OrderResponseWrapper;
-import com.thewyolar.orderflow.orderservice.dto.TransactionResponseDTO;
-import com.thewyolar.orderflow.orderservice.service.OrderService;
+import com.thewyolar.orderflow.orderservice.dto.*;
+import com.thewyolar.orderflow.orderservice.model.Merchant;
+import com.thewyolar.orderflow.orderservice.service.MerchantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,29 +14,26 @@ import java.util.UUID;
 @RequestMapping("/api/merchant")
 public class MerchantController {
     @Autowired
-    private OrderService orderService;
+    private MerchantService merchantService;
 
     @PostMapping("/add")
-    public ResponseEntity<OrderResponseDTO> addOrder(@RequestBody OrderDTO order) {
-        OrderResponseDTO orderResponseDTO = orderService.createOrder(order);
-        return ResponseEntity.ok(orderResponseDTO);
+    public ResponseEntity<Merchant> addMerchant(@RequestBody MerchantDTO merchantDTO) {
+        return ResponseEntity.ok(merchantService.createMerchant(merchantDTO));
     }
 
-    @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponseWrapper> getOrder(@PathVariable UUID orderId) {
-        OrderResponseWrapper orderResponseWrapper = orderService.getOrderById(orderId);
-        return ResponseEntity.ok(orderResponseWrapper);
+    @GetMapping("/{merchantId}")
+    public ResponseEntity<Merchant> getMerchant(@PathVariable UUID merchantId) {
+        return ResponseEntity.ok(merchantService.getMerchantById(merchantId));
     }
 
-    @DeleteMapping("/{orderId}/delete")
-    public ResponseEntity<String> deleteOrder(@PathVariable UUID orderId) {
-        orderService.deleteOrderById(orderId);
-        return ResponseEntity.ok("Order with id=" + orderId + " deleted successfully.");
+    @DeleteMapping("/{merchantId}")
+    public ResponseEntity<String> deleteOrder(@PathVariable UUID merchantId) {
+        merchantService.deleteMerchantById(merchantId);
+        return ResponseEntity.ok("Merchant with id=" + merchantId + " deleted successfully.");
     }
 
-    @PostMapping("/{transactionId}/refund")
-    public ResponseEntity<TransactionResponseDTO> refundOrder(@PathVariable UUID transactionId) {
-        TransactionResponseDTO transactionResponseDTO = orderService.refundOrder(transactionId);
-        return ResponseEntity.ok(transactionResponseDTO);
+    @PatchMapping("/{merchantId}")
+    public ResponseEntity<Merchant> updateMerchant(@PathVariable UUID merchantId, @RequestBody MerchantDTO merchantDTO) {
+        return ResponseEntity.ok(merchantService.updateMerchant(merchantId, merchantDTO));
     }
 }
