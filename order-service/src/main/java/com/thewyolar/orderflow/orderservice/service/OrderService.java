@@ -33,15 +33,13 @@ public class OrderService {
     private final MerchantRepository merchantRepository;
     private final OrderMapper orderMapper;
     private final TransactionMapper transactionMapper;
-    private final KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate) {
+    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, OrderMapper orderMapper, TransactionMapper transactionMapper) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.merchantRepository = merchantRepository;
         this.orderMapper = orderMapper;
         this.transactionMapper = transactionMapper;
-        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Transactional
@@ -99,15 +97,11 @@ public class OrderService {
         // Сохраняем транзакцию в БД и отправляем сообщение в Kafka с транзакцией типа REFUND и статусом NEW
         refundTransaction = transactionRepository.save(refundTransaction);
         TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(refundTransaction);
-        kafkaTemplate.send("refund_transactions", transactionResponseDTO);
 
         // TODO: Если первоначальной транзакции нет
         // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND
         if (!initialTransaction.getType().equals(TransactionType.PAYMENT) || !initialTransaction.getStatus().equals(TransactionStatus.COMPLETE)) {
             transactionResponseDTO.setStatus(TransactionStatus.DECLINED);
-            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
-        } else {
-            kafkaTemplate.send("refund_transactions", transactionResponseDTO);
         }
 
         return transactionResponseDTO;

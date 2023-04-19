@@ -12,7 +12,6 @@ import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
@@ -30,15 +29,13 @@ public class TransactionService {
     private final OrderMapper orderMapper;
     private final TransactionMapper transactionMapper;
     private final RSAEncryptor encryptor;
-    private final KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
     private final RedisTemplate<String, String> redisTemplate;
 
-    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate, RedisTemplate<String, String> redisTemplate) {
+    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, RedisTemplate<String, String> redisTemplate) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.orderMapper = orderMapper;
         this.transactionMapper = transactionMapper;
-        this.kafkaTemplate = kafkaTemplate;
         this.redisTemplate = redisTemplate;
         this.encryptor = new RSAEncryptor();
     }
@@ -87,8 +84,6 @@ public class TransactionService {
         // формируем ответ
         PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
         paymentResponseDTO.setStatus(OrderStatus.PAID);
-
-        kafkaTemplate.send("new_transactions", paymentResponseDTO);
 
         return paymentResponseDTO;
     }

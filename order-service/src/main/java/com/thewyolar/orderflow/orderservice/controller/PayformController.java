@@ -6,6 +6,7 @@ import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -18,9 +19,13 @@ public class PayformController {
     @Autowired
     private TransactionService transactionService;
 
+    @Autowired
+    private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
+
     @PostMapping("/payment/make")
     public ResponseEntity<PaymentResponseDTO> makePayment(@RequestBody PaymentDTO paymentDTO) {
         PaymentResponseDTO paymentResponseDTO = transactionService.makePayment(paymentDTO);
+        kafkaTemplate.send("new_transactions", paymentResponseDTO);
         return ResponseEntity.ok(paymentResponseDTO);
     }
 

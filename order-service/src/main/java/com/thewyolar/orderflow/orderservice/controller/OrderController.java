@@ -7,6 +7,7 @@ import com.thewyolar.orderflow.orderservice.dto.TransactionResponseDTO;
 import com.thewyolar.orderflow.orderservice.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -17,6 +18,9 @@ import java.util.UUID;
 public class OrderController {
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
 
     @PostMapping("/add")
     public ResponseEntity<OrderResponseDTO> addOrder(@RequestBody OrderDTO order) {
@@ -39,6 +43,7 @@ public class OrderController {
     @PostMapping("/{transactionId}/refund")
     public ResponseEntity<TransactionResponseDTO> refundOrder(@PathVariable UUID transactionId) {
         TransactionResponseDTO transactionResponseDTO = orderService.refundOrder(transactionId);
+        kafkaTemplate.send("refund_transactions", transactionResponseDTO);
         return ResponseEntity.ok(transactionResponseDTO);
     }
 }
