@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,4 +21,7 @@ public class Merchant {
 
     @Column(name = "site_url")
     private String siteUrl;
+
+    @OneToMany(mappedBy = "merchant", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    private List<Order> orders;
 }
