@@ -24,20 +24,18 @@ public class OrderController {
 
     @PostMapping("/add")
     public ResponseEntity<OrderResponseDTO> addOrder(@RequestBody OrderDTO order) {
-        OrderResponseDTO orderResponseDTO = orderService.createOrder(order);
-        return ResponseEntity.ok(orderResponseDTO);
+        return ResponseEntity.ok(orderService.createOrder(order));
     }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponseWrapper> getOrder(@PathVariable UUID orderId) {
-        OrderResponseWrapper orderResponseWrapper = orderService.getOrderById(orderId);
-        return ResponseEntity.ok(orderResponseWrapper);
+        return ResponseEntity.ok(orderService.getOrderById(orderId));
     }
 
     @DeleteMapping("/{orderId}")
     public ResponseEntity<String> deleteOrder(@PathVariable UUID orderId) {
         orderService.deleteOrderById(orderId);
-        return ResponseEntity.ok("Order with id=" + orderId + " deleted successfully.");
+        return ResponseEntity.ok("Заказ с id=" + orderId + " успешно удален.");
     }
 
     @PostMapping("/{transactionId}/refund")

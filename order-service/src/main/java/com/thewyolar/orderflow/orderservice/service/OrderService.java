@@ -47,7 +47,7 @@ public class OrderService {
         order.setStatus(OrderStatus.NEW);
 
         Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId())
-                .orElseThrow(() -> new NotFoundException("Merchant not found"));
+                .orElseThrow(() -> new NotFoundException("Мерчант не найден"));
 
         order.setMerchant(merchant);
         OffsetDateTime dateCreate = OffsetDateTime.now();
@@ -66,7 +66,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderResponseWrapper getOrderById(UUID orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException("Заказ не найден"));
 
         return orderMapper.toOrderResponseWrapper(order);
     }
@@ -79,7 +79,7 @@ public class OrderService {
     @Transactional
     public TransactionResponseDTO refundOrder(UUID transactionId) {
         Transaction initialTransaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Транзакция не найдена"));
 
         // Создаем новую транзакцию с типом REFUND и статусом NEW
         Transaction refundTransaction = new Transaction();
@@ -110,7 +110,7 @@ public class OrderService {
     public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) {
         // Находим транзакцию в БД
         Transaction transaction = transactionRepository.findById(transactionResponseDTO.getTransactionId())
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Транзакция не найдена"));
 
         // Проверяем тип транзакции
         if (transaction.getType() == TransactionType.REFUND) {

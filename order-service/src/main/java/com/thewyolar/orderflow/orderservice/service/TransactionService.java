@@ -42,7 +42,7 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public OrderStatusResponseDTO getOrderStatus(UUID orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException("Заказ не найден"));
 
         return orderMapper.toOrderStatusResponseDTO(order);
     }
@@ -50,7 +50,7 @@ public class TransactionService {
     @Transactional
     public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
         Order order = orderRepository.findById(paymentDTO.getOrderId())
-                .orElseThrow(() -> new NotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException("Заказ не найден"));
 
         // Расшифровываем номер карты и CVV-код
         String cardNumber = encryptor.decrypt(paymentDTO.getCardNumber());
@@ -85,7 +85,7 @@ public class TransactionService {
     @KafkaListener(topics = "new_transactions")
     public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
         Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Транзакция не найдена"));
 
         // Получаем данные из Redis
         String cardNumberKey = "cardNumber:" + paymentResponseDTO.getTransactionId();

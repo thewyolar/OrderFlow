@@ -31,7 +31,6 @@ public class PayformController {
 
     @GetMapping("/{orderId}/status")
     public ResponseEntity<OrderStatusResponseDTO> getOrderStatus(@PathVariable UUID orderId) {
-        OrderStatusResponseDTO orderStatusResponseDTO = transactionService.getOrderStatus(orderId);
-        return ResponseEntity.ok(orderStatusResponseDTO);
+        return ResponseEntity.ok(transactionService.getOrderStatus(orderId));
     }
 }

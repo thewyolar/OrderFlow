@@ -21,7 +21,8 @@ public class MerchantService {
     }
 
     public Merchant getMerchantById(UUID id) {
-        return merchantRepository.findById(id).orElseThrow(() -> new NotFoundException("Merchant not found"));
+        return merchantRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Мерчант не найден"));
     }
 
     public Merchant createMerchant(MerchantDTO merchantDTO) {
@@ -30,7 +31,8 @@ public class MerchantService {
     }
 
     public Merchant updateMerchant(UUID merchantId, MerchantDTO merchant) {
-        Merchant existingMerchant = merchantRepository.findById(merchantId).orElseThrow(() -> new NotFoundException("Merchant not found"));;
+        Merchant existingMerchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new NotFoundException("Мерчант не найден"));
         existingMerchant.setName(merchant.getName());
         existingMerchant.setSiteUrl(merchant.getSiteUrl());
         return merchantRepository.save(existingMerchant);
