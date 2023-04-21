@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +64,7 @@ public class TransactionService {
         transaction.setCurrency(paymentDTO.getCurrency());
         transaction.setDateCreate(LocalDateTime.now());
         transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.COMPLETE); // TODO нужно без этого
+        transaction.setStatus(TransactionStatus.COMPLETE);
         transaction.setType(TransactionType.PAYMENT);
         transactionRepository.save(transaction);
 
@@ -74,12 +73,6 @@ public class TransactionService {
         String cvvKey = "cvv:" + transaction.getId();
         redisTemplate.opsForValue().set(cardNumberKey, cardNumber, 20, TimeUnit.MINUTES);
         redisTemplate.opsForValue().set(cvvKey, cvv, 20, TimeUnit.MINUTES);
-
-        // обновляем статус заказа
-        // TODO нужно без этого
-        order.setStatus(OrderStatus.PAID);
-        order.setDateUpdate(OffsetDateTime.now());
-        orderRepository.save(order);
 
         // формируем ответ
         PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
@@ -91,7 +84,6 @@ public class TransactionService {
     @Transactional
     @KafkaListener(topics = "new_transactions")
     public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
-        // найдем транзакцию в БД
         Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
@@ -127,6 +119,9 @@ public class TransactionService {
                         // отклоняем транзакцию
                         savedTransaction.setStatus(TransactionStatus.DECLINED);
                         transactionRepository.save(savedTransaction);
+                    } else if (totalAmount.compareTo(0.0) > 0 && totalAmount.compareTo(order.getAmount()) < 0) {
+                        order.setStatus(OrderStatus.PARTIAL_PAID);
+                        orderRepository.save(order);
                     } else {
                         // обновляем статус ордера на PAID
                         order.setStatus(OrderStatus.PAID);
