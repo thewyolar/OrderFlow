@@ -1,6 +1,7 @@
 package com.thewyolar.orderflow.orderservice.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.thewyolar.orderflow.orderservice.util.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -28,6 +29,7 @@ public class Order {
     @Column(name = "currency")
     private String currency;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "merchant_id")
     private Merchant merchant;

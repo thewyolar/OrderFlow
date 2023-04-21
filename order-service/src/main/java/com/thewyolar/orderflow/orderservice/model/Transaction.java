@@ -1,6 +1,7 @@
 package com.thewyolar.orderflow.orderservice.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.thewyolar.orderflow.orderservice.util.TransactionContext;
 import com.thewyolar.orderflow.orderservice.util.TransactionContextConverter;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
@@ -21,10 +22,12 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "merchant_id")
     private Merchant merchant;
