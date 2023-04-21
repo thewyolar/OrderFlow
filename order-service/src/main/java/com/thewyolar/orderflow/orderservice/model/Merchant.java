@@ -22,6 +22,6 @@ public class Merchant {
     @Column(name = "site_url")
     private String siteUrl;
 
-    @OneToMany(mappedBy = "merchant", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "merchant", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private List<Order> orders;
 }

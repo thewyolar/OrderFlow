@@ -30,7 +30,7 @@ public class Order {
     private String currency;
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "merchant_id")
     private Merchant merchant;
 

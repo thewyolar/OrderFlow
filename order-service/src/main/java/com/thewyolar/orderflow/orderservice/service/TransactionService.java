@@ -29,13 +29,15 @@ public class TransactionService {
     private final TransactionMapper transactionMapper;
     private final RSAEncryptor encryptor;
     private final RedisTemplate<String, String> redisTemplate;
+    private final CallbackService callbackService;
 
-    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, RedisTemplate<String, String> redisTemplate) {
+    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, RedisTemplate<String, String> redisTemplate, CallbackService callbackService) {
         this.orderRepository = orderRepository;
         this.transactionRepository = transactionRepository;
         this.orderMapper = orderMapper;
         this.transactionMapper = transactionMapper;
         this.redisTemplate = redisTemplate;
+        this.callbackService = callbackService;
         this.encryptor = new RSAEncryptor();
     }
 
@@ -130,6 +132,8 @@ public class TransactionService {
                 }
             }
         }
+
+        callbackService.sendCallback(savedTransaction.getMerchant(), savedTransaction.getOrder());
     }
 
     private boolean isLuhnValid(String value) {
