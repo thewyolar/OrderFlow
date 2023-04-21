@@ -16,7 +16,6 @@ import com.thewyolar.orderflow.orderservice.util.OrderStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,11 +93,10 @@ public class OrderService {
         refundTransaction.setDateUpdate(initialTransaction.getDateUpdate());
         refundTransaction.setContext(initialTransaction.getContext());
 
-        // Сохраняем транзакцию в БД и отправляем сообщение в Kafka с транзакцией типа REFUND и статусом NEW
+        // Сохраняем транзакцию в БД
         refundTransaction = transactionRepository.save(refundTransaction);
         TransactionResponseDTO transactionResponseDTO = transactionMapper.toTransactionResponseDTO(refundTransaction);
 
-        // TODO: Если первоначальной транзакции нет
         // Если первоначальной транзакции нет или она не является транзакцией оплаты со статусом COMPLETE, формируем сообщение и отправляем в Kafka с транзакцией типа REFUND
         if (!initialTransaction.getType().equals(TransactionType.PAYMENT) || !initialTransaction.getStatus().equals(TransactionStatus.COMPLETE)) {
             transactionResponseDTO.setStatus(TransactionStatus.DECLINED);
