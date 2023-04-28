@@ -3,6 +3,10 @@ package com.thewyolar.orderflow.orderservice.service;
 import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
+import com.thewyolar.orderflow.orderservice.exception.CallbackException;
+import com.thewyolar.orderflow.orderservice.exception.OrderNotFoundException;
+import com.thewyolar.orderflow.orderservice.exception.PaymentException;
+import com.thewyolar.orderflow.orderservice.exception.TransactionNotFoundException;
 import com.thewyolar.orderflow.orderservice.service.mapper.OrderMapper;
 import com.thewyolar.orderflow.orderservice.service.mapper.TransactionMapper;
 import com.thewyolar.orderflow.orderservice.model.Order;
@@ -15,7 +19,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.webjars.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,98 +44,112 @@ public class TransactionService {
     private final CallbackService callbackService;
 
     @Transactional(readOnly = true)
-    public OrderStatusResponseDTO getOrderStatus(UUID orderId) {
+    public OrderStatusResponseDTO getOrderStatus(UUID orderId) throws OrderNotFoundException {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Заказ не найден"));
+                .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + orderId + " не найден"));
 
         return orderMapper.toOrderStatusResponseDTO(order);
     }
 
     @Transactional
-    public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) {
-        Order order = orderRepository.findById(paymentDTO.getOrderId())
-                .orElseThrow(() -> new NotFoundException("Заказ не найден"));
+    public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) throws PaymentException, OrderNotFoundException {
+        try {
+            Order order = orderRepository.findById(paymentDTO.getOrderId())
+                    .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + paymentDTO.getOrderId() + " не найден"));
 
-        // Расшифровываем номер карты и CVV-код
-        String cardNumber = encryptor.decrypt(paymentDTO.getCardNumber());
-        String cvv = encryptor.decrypt(paymentDTO.getCvvCode());
+            // Расшифровываем номер карты и CVV-код
+            String cardNumber = encryptor.decrypt(paymentDTO.getCardNumber());
+            String cvv = encryptor.decrypt(paymentDTO.getCvvCode());
 
-        // Создаем транзакцию
-        Transaction transaction = new Transaction();
-        transaction.setOrder(order);
-        transaction.setMerchant(order.getMerchant());
-        transaction.setAmount(paymentDTO.getAmount());
-        transaction.setCurrency(paymentDTO.getCurrency());
-        transaction.setDateCreate(LocalDateTime.now());
-        transaction.setDateUpdate(LocalDateTime.now());
-        transaction.setStatus(TransactionStatus.COMPLETE);
-        transaction.setType(TransactionType.PAYMENT);
-        transactionRepository.save(transaction);
+            // Создаем транзакцию
+            Transaction transaction = new Transaction();
+            transaction.setOrder(order);
+            transaction.setMerchant(order.getMerchant());
+            transaction.setAmount(paymentDTO.getAmount());
+            transaction.setCurrency(paymentDTO.getCurrency());
+            transaction.setDateCreate(LocalDateTime.now());
+            transaction.setDateUpdate(LocalDateTime.now());
+            transaction.setStatus(TransactionStatus.COMPLETE);
+            transaction.setType(TransactionType.PAYMENT);
+            transactionRepository.save(transaction);
 
-        // Сохраняем расшифрованные данные в Redis
-        String cardNumberKey = "cardNumber:" + transaction.getId();
-        String cvvKey = "cvv:" + transaction.getId();
-        redisTemplate.opsForValue().set(cardNumberKey, cardNumber, 20, TimeUnit.MINUTES);
-        redisTemplate.opsForValue().set(cvvKey, cvv, 20, TimeUnit.MINUTES);
+            // Сохраняем расшифрованные данные в Redis
+            String cardNumberKey = "cardNumber:" + transaction.getId();
+            String cvvKey = "cvv:" + transaction.getId();
+            redisTemplate.opsForValue().set(cardNumberKey, cardNumber, 20, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(cvvKey, cvv, 20, TimeUnit.MINUTES);
 
-        // формируем ответ
-        PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
-        paymentResponseDTO.setStatus(OrderStatus.PAID);
+            // формируем ответ
+            PaymentResponseDTO paymentResponseDTO = transactionMapper.toPaymentResponseDTO(transaction);
+            paymentResponseDTO.setStatus(OrderStatus.PAID);
 
-        return paymentResponseDTO;
+            return paymentResponseDTO;
+
+        } catch (OrderNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new PaymentException("Ошибка при обработке платежа: " + e.getMessage());
+        }
     }
 
     @Transactional
     @KafkaListener(topics = "new_transactions")
-    public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) {
-        Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
-                .orElseThrow(() -> new NotFoundException("Транзакция не найдена"));
+    public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) throws CallbackException, TransactionNotFoundException, PaymentException {
+        try {
+            Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
+                    .orElseThrow(() -> new TransactionNotFoundException("Транзакция с id=" + paymentResponseDTO.getTransactionId() + " не найдена"));
 
-        // Получаем данные из Redis
-        String cardNumberKey = "cardNumber:" + paymentResponseDTO.getTransactionId();
-        String cvvKey = "cvv:" + paymentResponseDTO.getTransactionId();
-        String cardNumber = redisTemplate.opsForValue().get(cardNumberKey);
-        String cvv = redisTemplate.opsForValue().get(cvvKey);
+            // Получаем данные из Redis
+            String cardNumberKey = "cardNumber:" + paymentResponseDTO.getTransactionId();
+            String cvvKey = "cvv:" + paymentResponseDTO.getTransactionId();
+            String cardNumber = redisTemplate.opsForValue().get(cardNumberKey);
+            String cvv = redisTemplate.opsForValue().get(cvvKey);
 
-        // проверяем номер карты алгоритмом LUNA
-        if (!isLuhnValid(cardNumber)) {
-            savedTransaction.setStatus(TransactionStatus.DECLINED);
-            transactionRepository.save(savedTransaction);
-        } else {
-            String cardType = getCardType(cardNumber);
-            if (cardType.equals("VISA")) {
-                // отклоняем транзакцию
+            // проверяем номер карты алгоритмом LUNA
+            if (!isLuhnValid(cardNumber)) {
                 savedTransaction.setStatus(TransactionStatus.DECLINED);
                 transactionRepository.save(savedTransaction);
-            } else if (cardType.equals("MasterCard") || cardType.equals("MIR")) {
-                Order order = savedTransaction.getOrder();
-                if (order.getStatus().equals(OrderStatus.PAID) || order.getStatus().equals(OrderStatus.PARTIAL_REFUNDED)) {
+            } else {
+                String cardType = getCardType(cardNumber);
+                if (cardType.equals("VISA")) {
                     // отклоняем транзакцию
                     savedTransaction.setStatus(TransactionStatus.DECLINED);
                     transactionRepository.save(savedTransaction);
-                } else if (order.getStatus().equals(OrderStatus.NEW) || order.getStatus().equals(OrderStatus.PARTIAL_PAID)) {
-                    List<Transaction> transactions = transactionRepository.findByOrderAndStatus(order, TransactionStatus.COMPLETE);
-                    Double totalAmount = 0.0;
-                    for (Transaction transaction : transactions) {
-                        totalAmount += transaction.getAmount();
-                    }
-                    if (totalAmount.compareTo(order.getAmount()) > 0) {
+                } else if (cardType.equals("MasterCard") || cardType.equals("MIR")) {
+                    Order order = savedTransaction.getOrder();
+                    if (order.getStatus().equals(OrderStatus.PAID) || order.getStatus().equals(OrderStatus.PARTIAL_REFUNDED)) {
                         // отклоняем транзакцию
                         savedTransaction.setStatus(TransactionStatus.DECLINED);
                         transactionRepository.save(savedTransaction);
-                    } else if (totalAmount.compareTo(0.0) > 0 && totalAmount.compareTo(order.getAmount()) < 0) {
-                        order.setStatus(OrderStatus.PARTIAL_PAID);
-                        orderRepository.save(order);
-                    } else {
-                        // обновляем статус ордера на PAID
-                        order.setStatus(OrderStatus.PAID);
-                        orderRepository.save(order);
+                    } else if (order.getStatus().equals(OrderStatus.NEW) || order.getStatus().equals(OrderStatus.PARTIAL_PAID)) {
+                        List<Transaction> transactions = transactionRepository.findByOrderAndStatus(order, TransactionStatus.COMPLETE);
+                        Double totalAmount = 0.0;
+                        for (Transaction transaction : transactions) {
+                            totalAmount += transaction.getAmount();
+                        }
+                        if (totalAmount.compareTo(order.getAmount()) > 0) {
+                            // отклоняем транзакцию
+                            savedTransaction.setStatus(TransactionStatus.DECLINED);
+                            transactionRepository.save(savedTransaction);
+                        } else if (totalAmount.compareTo(0.0) > 0 && totalAmount.compareTo(order.getAmount()) < 0) {
+                            order.setStatus(OrderStatus.PARTIAL_PAID);
+                            orderRepository.save(order);
+                        } else {
+                            // обновляем статус ордера на PAID
+                            order.setStatus(OrderStatus.PAID);
+                            orderRepository.save(order);
+                        }
                     }
                 }
             }
-        }
 
-        callbackService.sendCallback(savedTransaction.getMerchant(), savedTransaction.getOrder());
+            callbackService.sendCallback(savedTransaction.getMerchant(), savedTransaction.getOrder());
+
+        } catch (TransactionNotFoundException | CallbackException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new PaymentException("Ошибка при обработке платежа: " + e.getMessage());
+        }
     }
 
     private boolean isLuhnValid(String value) {

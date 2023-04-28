@@ -1,5 +1,7 @@
 package com.thewyolar.orderflow.orderservice.util;
 
+import org.springframework.stereotype.Component;
+
 import javax.crypto.Cipher;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -8,6 +10,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+@Component
 public class RSAEncryptor {
     private static PrivateKey privateKey;
 

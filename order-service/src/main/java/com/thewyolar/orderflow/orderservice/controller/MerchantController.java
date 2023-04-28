@@ -1,6 +1,7 @@
 package com.thewyolar.orderflow.orderservice.controller;
 
 import com.thewyolar.orderflow.orderservice.dto.*;
+import com.thewyolar.orderflow.orderservice.exception.MerchantNotFoundException;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.service.MerchantService;
 import lombok.AllArgsConstructor;
@@ -23,18 +24,18 @@ public class MerchantController {
     }
 
     @GetMapping("/{merchantId}")
-    public ResponseEntity<MerchantResponseDTO> getMerchant(@PathVariable UUID merchantId) {
+    public ResponseEntity<MerchantResponseDTO> getMerchant(@PathVariable UUID merchantId) throws MerchantNotFoundException {
         return ResponseEntity.ok(merchantService.getMerchantById(merchantId));
     }
 
     @DeleteMapping("/{merchantId}")
-    public ResponseEntity<String> deleteOrder(@PathVariable UUID merchantId) {
+    public ResponseEntity<String> deleteOrder(@PathVariable UUID merchantId) throws MerchantNotFoundException {
         merchantService.deleteMerchantById(merchantId);
         return ResponseEntity.ok("Merchant with id=" + merchantId + " deleted successfully.");
     }
 
     @PatchMapping("/{merchantId}")
-    public ResponseEntity<Merchant> updateMerchant(@PathVariable UUID merchantId, @RequestBody MerchantDTO merchantDTO) {
+    public ResponseEntity<Merchant> updateMerchant(@PathVariable UUID merchantId, @RequestBody MerchantDTO merchantDTO) throws MerchantNotFoundException {
         return ResponseEntity.ok(merchantService.updateMerchant(merchantId, merchantDTO));
     }
 }

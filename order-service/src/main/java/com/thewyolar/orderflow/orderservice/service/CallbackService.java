@@ -1,10 +1,9 @@
 package com.thewyolar.orderflow.orderservice.service;
 
+import com.thewyolar.orderflow.orderservice.exception.CallbackException;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.model.Order;
 import lombok.AllArgsConstructor;
-import org.hibernate.CallbackException;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -15,7 +14,7 @@ public class CallbackService {
 
     private final RestTemplate restTemplate;
 
-    public void sendCallback(Merchant merchant, Order order) {
+    public void sendCallback(Merchant merchant, Order order) throws CallbackException {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 

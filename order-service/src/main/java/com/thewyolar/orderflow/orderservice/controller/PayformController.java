@@ -3,9 +3,10 @@ package com.thewyolar.orderflow.orderservice.controller;
 import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
+import com.thewyolar.orderflow.orderservice.exception.OrderNotFoundException;
+import com.thewyolar.orderflow.orderservice.exception.PaymentException;
 import com.thewyolar.orderflow.orderservice.service.TransactionService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -23,14 +24,14 @@ public class PayformController {
     private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
 
     @PostMapping("/payment/make")
-    public ResponseEntity<PaymentResponseDTO> makePayment(@RequestBody PaymentDTO paymentDTO) {
+    public ResponseEntity<PaymentResponseDTO> makePayment(@RequestBody PaymentDTO paymentDTO) throws PaymentException, OrderNotFoundException {
         PaymentResponseDTO paymentResponseDTO = transactionService.makePayment(paymentDTO);
         kafkaTemplate.send("new_transactions", paymentResponseDTO);
         return ResponseEntity.ok(paymentResponseDTO);
     }
 
     @GetMapping("/{orderId}/status")
-    public ResponseEntity<OrderStatusResponseDTO> getOrderStatus(@PathVariable UUID orderId) {
+    public ResponseEntity<OrderStatusResponseDTO> getOrderStatus(@PathVariable UUID orderId) throws OrderNotFoundException {
         return ResponseEntity.ok(transactionService.getOrderStatus(orderId));
     }
 }
