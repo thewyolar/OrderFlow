@@ -1,6 +1,7 @@
 package com.thewyolar.orderflow.orderservice.service.mapper;
 
 import com.thewyolar.orderflow.orderservice.dto.MerchantDTO;
+import com.thewyolar.orderflow.orderservice.dto.MerchantResponseDTO;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,7 @@ public class MerchantMapper {
         return modelMapper.map(merchantDTO, Merchant.class);
     }
 
-    public MerchantDTO toMerchantDTO(Merchant merchant) {
-        return modelMapper.map(merchant, MerchantDTO.class);
+    public MerchantResponseDTO toMerchantResponseDTO(Merchant merchant) {
+        return modelMapper.map(merchant, MerchantResponseDTO.class);
     }
 }

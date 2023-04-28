@@ -17,12 +17,12 @@ public class MerchantController {
     private MerchantService merchantService;
 
     @PostMapping("/add")
-    public ResponseEntity<Merchant> addMerchant(@RequestBody MerchantDTO merchantDTO) {
+    public ResponseEntity<MerchantResponseDTO> addMerchant(@RequestBody MerchantDTO merchantDTO) {
         return ResponseEntity.ok(merchantService.createMerchant(merchantDTO));
     }
 
     @GetMapping("/{merchantId}")
-    public ResponseEntity<Merchant> getMerchant(@PathVariable UUID merchantId) {
+    public ResponseEntity<MerchantResponseDTO> getMerchant(@PathVariable UUID merchantId) {
         return ResponseEntity.ok(merchantService.getMerchantById(merchantId));
     }
 
