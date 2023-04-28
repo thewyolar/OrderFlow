@@ -5,6 +5,7 @@ import com.thewyolar.orderflow.orderservice.dto.MerchantResponseDTO;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.repository.MerchantRepository;
 import com.thewyolar.orderflow.orderservice.service.mapper.MerchantMapper;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
@@ -12,15 +13,12 @@ import org.webjars.NotFoundException;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class MerchantService {
+
     private final MerchantRepository merchantRepository;
 
     private final MerchantMapper merchantMapper;
-
-    public MerchantService(MerchantRepository merchantRepository, MerchantMapper merchantMapper) {
-        this.merchantRepository = merchantRepository;
-        this.merchantMapper = merchantMapper;
-    }
 
     @Transactional(readOnly = true)
     public MerchantResponseDTO getMerchantById(UUID id) {

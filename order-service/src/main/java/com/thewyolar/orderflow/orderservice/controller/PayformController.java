@@ -4,6 +4,7 @@ import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.service.TransactionService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -11,15 +12,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@RestController
 @CrossOrigin
+@RestController
+@AllArgsConstructor
 @RequestMapping("/api/payform")
 public class PayformController {
 
-    @Autowired
     private TransactionService transactionService;
 
-    @Autowired
     private KafkaTemplate<Long, PaymentResponseDTO> kafkaTemplate;
 
     @PostMapping("/payment/make")

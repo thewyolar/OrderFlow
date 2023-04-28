@@ -2,6 +2,7 @@ package com.thewyolar.orderflow.orderservice.service;
 
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.model.Order;
+import lombok.AllArgsConstructor;
 import org.hibernate.CallbackException;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
@@ -9,12 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
+@AllArgsConstructor
 public class CallbackService {
-    private final RestTemplate restTemplate;
 
-    public CallbackService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
-    }
+    private final RestTemplate restTemplate;
 
     public void sendCallback(Merchant merchant, Order order) {
         HttpHeaders headers = new HttpHeaders();

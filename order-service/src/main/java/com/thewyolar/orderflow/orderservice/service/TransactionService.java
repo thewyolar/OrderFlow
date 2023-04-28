@@ -10,6 +10,7 @@ import com.thewyolar.orderflow.orderservice.model.Transaction;
 import com.thewyolar.orderflow.orderservice.repository.OrderRepository;
 import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.*;
+import lombok.AllArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -22,24 +23,22 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@AllArgsConstructor
 public class TransactionService {
-    private final OrderRepository orderRepository;
-    private final TransactionRepository transactionRepository;
-    private final OrderMapper orderMapper;
-    private final TransactionMapper transactionMapper;
-    private final RSAEncryptor encryptor;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final CallbackService callbackService;
 
-    public TransactionService(OrderRepository orderRepository, TransactionRepository transactionRepository, OrderMapper orderMapper, TransactionMapper transactionMapper, RedisTemplate<String, String> redisTemplate, CallbackService callbackService) {
-        this.orderRepository = orderRepository;
-        this.transactionRepository = transactionRepository;
-        this.orderMapper = orderMapper;
-        this.transactionMapper = transactionMapper;
-        this.redisTemplate = redisTemplate;
-        this.callbackService = callbackService;
-        this.encryptor = new RSAEncryptor();
-    }
+    private final OrderRepository orderRepository;
+
+    private final TransactionRepository transactionRepository;
+
+    private final OrderMapper orderMapper;
+
+    private final TransactionMapper transactionMapper;
+
+    private final RSAEncryptor encryptor;
+
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private final CallbackService callbackService;
 
     @Transactional(readOnly = true)
     public OrderStatusResponseDTO getOrderStatus(UUID orderId) {

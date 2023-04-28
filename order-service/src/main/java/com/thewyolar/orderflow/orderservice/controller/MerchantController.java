@@ -3,17 +3,18 @@ package com.thewyolar.orderflow.orderservice.controller;
 import com.thewyolar.orderflow.orderservice.dto.*;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
 import com.thewyolar.orderflow.orderservice.service.MerchantService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@RestController
 @CrossOrigin
+@RestController
+@AllArgsConstructor
 @RequestMapping("/api/merchant")
 public class MerchantController {
-    @Autowired
+
     private MerchantService merchantService;
 
     @PostMapping("/add")

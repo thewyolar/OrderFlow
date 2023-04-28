@@ -5,6 +5,7 @@ import com.thewyolar.orderflow.orderservice.dto.OrderResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.OrderResponseWrapper;
 import com.thewyolar.orderflow.orderservice.dto.TransactionResponseDTO;
 import com.thewyolar.orderflow.orderservice.service.OrderService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -12,14 +13,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@RestController
 @CrossOrigin
+@RestController
+@AllArgsConstructor
 @RequestMapping("/api/merchant/orders")
 public class OrderController {
-    @Autowired
+
     private OrderService orderService;
 
-    @Autowired
     private KafkaTemplate<Long, TransactionResponseDTO> kafkaTemplate;
 
     @PostMapping("/add")

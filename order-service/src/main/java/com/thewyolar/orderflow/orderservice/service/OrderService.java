@@ -15,6 +15,7 @@ import com.thewyolar.orderflow.orderservice.repository.TransactionRepository;
 import com.thewyolar.orderflow.orderservice.util.OrderStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionStatus;
 import com.thewyolar.orderflow.orderservice.util.TransactionType;
+import lombok.AllArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,20 +27,18 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class OrderService {
-    private final OrderRepository orderRepository;
-    private final TransactionRepository transactionRepository;
-    private final MerchantRepository merchantRepository;
-    private final OrderMapper orderMapper;
-    private final TransactionMapper transactionMapper;
 
-    public OrderService(OrderRepository orderRepository, TransactionRepository transactionRepository, MerchantRepository merchantRepository, OrderMapper orderMapper, TransactionMapper transactionMapper) {
-        this.orderRepository = orderRepository;
-        this.transactionRepository = transactionRepository;
-        this.merchantRepository = merchantRepository;
-        this.orderMapper = orderMapper;
-        this.transactionMapper = transactionMapper;
-    }
+    private final OrderRepository orderRepository;
+
+    private final TransactionRepository transactionRepository;
+
+    private final MerchantRepository merchantRepository;
+
+    private final OrderMapper orderMapper;
+
+    private final TransactionMapper transactionMapper;
 
     @Transactional
     public OrderResponseDTO createOrder(OrderDTO orderDTO) {
