@@ -19,19 +19,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.httpBasic()
-            .and()
+        http
+            .httpBasic()
+                .and()
             .csrf().disable()
             .cors().disable()
             .authorizeHttpRequests((requests) -> requests
                 .requestMatchers("/api/payform/**").permitAll()
                 .requestMatchers("/api/merchant/**").hasRole("MERCHANT")
                 .anyRequest().authenticated())
-            .formLogin((form) -> form
-                .defaultSuccessUrl("/"))
-            .logout((logout) -> logout
-                    .logoutSuccessUrl("/")
-        );
+            .formLogin()
+                .defaultSuccessUrl("/")
+                .and()
+            .logout().logoutSuccessUrl("/");
 
         return http.build();
     }
