@@ -4,9 +4,7 @@ import com.thewyolar.orderflow.orderservice.dto.OrderDTO;
 import com.thewyolar.orderflow.orderservice.dto.OrderResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.OrderResponseWrapper;
 import com.thewyolar.orderflow.orderservice.dto.TransactionResponseDTO;
-import com.thewyolar.orderflow.orderservice.exception.MerchantNotFoundException;
-import com.thewyolar.orderflow.orderservice.exception.OrderNotFoundException;
-import com.thewyolar.orderflow.orderservice.exception.TransactionNotFoundException;
+import com.thewyolar.orderflow.orderservice.exception.NotFoundException;
 import com.thewyolar.orderflow.orderservice.service.mapper.OrderMapper;
 import com.thewyolar.orderflow.orderservice.service.mapper.TransactionMapper;
 import com.thewyolar.orderflow.orderservice.model.Merchant;
@@ -43,12 +41,12 @@ public class OrderService {
     private final TransactionMapper transactionMapper;
 
     @Transactional
-    public OrderResponseDTO createOrder(OrderDTO orderDTO) throws MerchantNotFoundException {
+    public OrderResponseDTO createOrder(OrderDTO orderDTO) throws NotFoundException {
         Order order = orderMapper.toOrder(orderDTO);
         order.setStatus(OrderStatus.NEW);
 
         Merchant merchant = merchantRepository.findById(orderDTO.getMerchantId())
-                .orElseThrow(() -> new MerchantNotFoundException("Мерчант с id=" + orderDTO.getMerchantId() + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Мерчант с id=" + orderDTO.getMerchantId() + " не найден"));
 
         order.setMerchant(merchant);
         OffsetDateTime dateCreate = OffsetDateTime.now();
@@ -65,25 +63,25 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public OrderResponseWrapper getOrderById(UUID orderId) throws OrderNotFoundException {
+    public OrderResponseWrapper getOrderById(UUID orderId) throws NotFoundException {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + orderId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Заказ с id=" + orderId + " не найден"));
 
         return orderMapper.toOrderResponseWrapper(order);
     }
 
     @Transactional
-    public void deleteOrderById(UUID orderId) throws OrderNotFoundException {
+    public void deleteOrderById(UUID orderId) throws NotFoundException {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + orderId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Заказ с id=" + orderId + " не найден"));
 
         orderRepository.delete(order);
     }
 
     @Transactional
-    public TransactionResponseDTO refundOrder(UUID transactionId) throws TransactionNotFoundException {
+    public TransactionResponseDTO refundOrder(UUID transactionId) throws NotFoundException {
         Transaction initialTransaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new TransactionNotFoundException("Транзакция с id=" + transactionId + " не найдена"));
+                .orElseThrow(() -> new NotFoundException("Транзакция с id=" + transactionId + " не найдена"));
 
         // Создаем новую транзакцию с типом REFUND и статусом NEW
         Transaction refundTransaction = new Transaction();
@@ -111,10 +109,10 @@ public class OrderService {
 
     @Transactional
     @KafkaListener(topics = "refund_transactions")
-    public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) throws TransactionNotFoundException {
+    public void processRefundTransaction(TransactionResponseDTO transactionResponseDTO) throws NotFoundException {
         // Находим транзакцию в БД
         Transaction transaction = transactionRepository.findById(transactionResponseDTO.getTransactionId())
-                .orElseThrow(() -> new TransactionNotFoundException("Транзакция с id=" + transactionResponseDTO.getTransactionId() + " не найдена"));
+                .orElseThrow(() -> new NotFoundException("Транзакция с id=" + transactionResponseDTO.getTransactionId() + " не найдена"));
 
         // Проверяем тип транзакции
         if (transaction.getType() == TransactionType.REFUND) {

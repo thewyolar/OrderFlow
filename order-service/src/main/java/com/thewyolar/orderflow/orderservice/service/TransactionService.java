@@ -4,9 +4,8 @@ import com.thewyolar.orderflow.orderservice.dto.OrderStatusResponseDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentDTO;
 import com.thewyolar.orderflow.orderservice.dto.PaymentResponseDTO;
 import com.thewyolar.orderflow.orderservice.exception.CallbackException;
-import com.thewyolar.orderflow.orderservice.exception.OrderNotFoundException;
+import com.thewyolar.orderflow.orderservice.exception.NotFoundException;
 import com.thewyolar.orderflow.orderservice.exception.PaymentException;
-import com.thewyolar.orderflow.orderservice.exception.TransactionNotFoundException;
 import com.thewyolar.orderflow.orderservice.service.mapper.OrderMapper;
 import com.thewyolar.orderflow.orderservice.service.mapper.TransactionMapper;
 import com.thewyolar.orderflow.orderservice.model.Order;
@@ -44,18 +43,18 @@ public class TransactionService {
     private final CallbackService callbackService;
 
     @Transactional(readOnly = true)
-    public OrderStatusResponseDTO getOrderStatus(UUID orderId) throws OrderNotFoundException {
+    public OrderStatusResponseDTO getOrderStatus(UUID orderId) throws NotFoundException {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + orderId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Заказ с id=" + orderId + " не найден"));
 
         return orderMapper.toOrderStatusResponseDTO(order);
     }
 
     @Transactional
-    public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) throws PaymentException, OrderNotFoundException {
+    public PaymentResponseDTO makePayment(PaymentDTO paymentDTO) throws PaymentException, NotFoundException {
         try {
             Order order = orderRepository.findById(paymentDTO.getOrderId())
-                    .orElseThrow(() -> new OrderNotFoundException("Заказ с id=" + paymentDTO.getOrderId() + " не найден"));
+                    .orElseThrow(() -> new NotFoundException("Заказ с id=" + paymentDTO.getOrderId() + " не найден"));
 
             // Расшифровываем номер карты и CVV-код
             String cardNumber = encryptor.decrypt(paymentDTO.getCardNumber());
@@ -85,7 +84,7 @@ public class TransactionService {
 
             return paymentResponseDTO;
 
-        } catch (OrderNotFoundException e) {
+        } catch (NotFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new PaymentException("Ошибка при обработке платежа: " + e.getMessage());
@@ -94,10 +93,10 @@ public class TransactionService {
 
     @Transactional
     @KafkaListener(topics = "new_transactions")
-    public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) throws CallbackException, TransactionNotFoundException, PaymentException {
+    public void processNewTransaction(PaymentResponseDTO paymentResponseDTO) throws CallbackException, NotFoundException, PaymentException {
         try {
             Transaction savedTransaction = transactionRepository.findById(paymentResponseDTO.getTransactionId())
-                    .orElseThrow(() -> new TransactionNotFoundException("Транзакция с id=" + paymentResponseDTO.getTransactionId() + " не найдена"));
+                    .orElseThrow(() -> new NotFoundException("Транзакция с id=" + paymentResponseDTO.getTransactionId() + " не найдена"));
 
             // Получаем данные из Redis
             String cardNumberKey = "cardNumber:" + paymentResponseDTO.getTransactionId();
@@ -145,7 +144,7 @@ public class TransactionService {
 
             callbackService.sendCallback(savedTransaction.getMerchant(), savedTransaction.getOrder());
 
-        } catch (TransactionNotFoundException | CallbackException e) {
+        } catch (NotFoundException | CallbackException e) {
             throw e;
         } catch (Exception e) {
             throw new PaymentException("Ошибка при обработке платежа: " + e.getMessage());
