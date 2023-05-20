@@ -34,12 +34,12 @@ public class MerchantService {
         return merchantMapper.toMerchantResponseDTO(merchant);
     }
 
-    @Transactional(readOnly = true)
-    public Merchant updateMerchant(UUID merchantId, MerchantDTO merchant) throws NotFoundException {
+    @Transactional
+    public Merchant updateMerchant(UUID merchantId, MerchantDTO merchantDTO) throws NotFoundException {
         Merchant existingMerchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new NotFoundException("Мерчант с id=" + merchantId + " не найден"));
-        existingMerchant.setName(merchant.getName());
-        existingMerchant.setSiteUrl(merchant.getSiteUrl());
+        existingMerchant.setName(merchantDTO.getName());
+        existingMerchant.setSiteUrl(merchantDTO.getSiteUrl());
         return merchantRepository.save(existingMerchant);
     }
 
